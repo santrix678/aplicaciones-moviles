@@ -1,0 +1,7 @@
+{
+  "name": "lavanderia-santrix",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

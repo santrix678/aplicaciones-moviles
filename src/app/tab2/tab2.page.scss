@@ -1,0 +1,35 @@
+.welcome-container {
+  h2 {
+    font-weight: bold;
+    color: var(--ion-color-dark);
+    margin-bottom: 4px;
+  }
+  p {
+    color: var(--ion-color-step-600);
+    margin-top: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.text-small {
+  font-size: 0.85rem;
+}
+
+.step-active {
+  color: var(--ion-color-dark);
+  font-weight: 500;
+}
+
+.step-inactive {
+  color: var(--ion-color-step-400);
+}
+
+.bg-transparent {
+  --background: transparent;
+}
+
+ion-card {
+  margin-inline: 0px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
