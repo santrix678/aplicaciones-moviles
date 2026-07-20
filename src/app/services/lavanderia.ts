@@ -7,18 +7,18 @@ import { Observable } from 'rxjs';
 })
 export class LavanderiaService {
 
-  // La URL de tu servidor Flask
+  // Limpiamos el doble punto y coma que quedó al final
   private apiUrl = 'http://127.0.0.1:5000/api';
 
   constructor(private http: HttpClient) { }
 
-  // Método para el reporte con caché
+  // Cambiado a /reporte para que coincida con Flask
   getReporte() {
-    return this.http.get(`${this.apiUrl}/reporte-lavanderia`);
+    return this.http.get(`${this.apiUrl}/reporte`);
   }
 
-  // Método para las órdenes optimizadas
+  // Cambiado a /ordenes para que coincida con Flask
   getOrdenes() {
-    return this.http.get(`${this.apiUrl}/ordenes-optimizadas`);
+    return this.http.get(`${this.apiUrl}/ordenes`);
   }
 }

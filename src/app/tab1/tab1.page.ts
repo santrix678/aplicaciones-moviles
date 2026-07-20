@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common'; // Para que funcionen los *ngIf y *ngFor
 import { 
   IonHeader, 
   IonToolbar, 
@@ -6,21 +7,20 @@ import {
   IonContent, 
   IonCard, 
   IonCardHeader, 
-  IonCardSubtitle, 
   IonCardTitle, 
+  IonCardSubtitle, 
   IonCardContent, 
-  IonButton, 
-  IonIcon, 
-  IonSearchbar 
-} from '@ionic/angular/standalone';
-import { CommonModule } from '@angular/common';
-import { Lavanderia } from '../services/lavanderia';
+  IonList, 
+  IonItem, 
+  IonLabel 
+} from '@ionic/angular/standalone'; // Importamos los componentes de Ionic uno por uno
+import { LavanderiaService } from '../services/lavanderia';
 
 @Component({
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
-  standalone: true,
+  standalone: true, // Le indicamos a Angular que es un componente autónomo
   imports: [
     CommonModule, 
     IonHeader, 
@@ -29,27 +29,41 @@ import { Lavanderia } from '../services/lavanderia';
     IonContent, 
     IonCard, 
     IonCardHeader, 
-    IonCardSubtitle, 
     IonCardTitle, 
+    IonCardSubtitle, 
     IonCardContent, 
-    IonButton, 
-    IonIcon, 
-    IonSearchbar
-  ]
+    IonList, 
+    IonItem, 
+    IonLabel
+  ] // Registramos los componentes para que la vista los reconozca
 })
 export class Tab1Page implements OnInit {
-  servicios: any[] = [];
 
-  constructor(private lavanderiaService: Lavanderia) {}
+  reporte: any = null;
+  ordenes: any[] = [];
+
+  constructor(private lavanderiaService: LavanderiaService) {}
 
   ngOnInit() {
-    this.lavanderiaService.getServicios().subscribe({
-      next: (data: any) => {
-        this.servicios = data;
+    this.obtenerReporte();
+    this.obtenerOrdenes();
+  }
+
+  obtenerReporte() {
+    this.lavanderiaService.getReporte().subscribe({
+      next: (res: any) => {
+        this.reporte = res;
       },
-      error: (err) => {
-        console.error('Error al cargar servicios', err);
-      }
+      error: (err: any) => console.error('Error al conectar con Flask:', err)
+    });
+  }
+
+  obtenerOrdenes() {
+    this.lavanderiaService.getOrdenes().subscribe({
+      next: (res: any) => {
+        this.ordenes = res;
+      },
+      error: (err: any) => console.error('Error al obtener órdenes:', err)
     });
   }
 }
