@@ -1,0 +1,29 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title class="ion-text-center">LAVANDERIA-SANTRIX</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding ion-text-center">
+  <div style="max-width: 400px; margin: 40px auto 0 auto;">
+    <ion-icon name="shirt-outline" color="primary" style="font-size: 80px;"></ion-icon>
+    <h2>Iniciar Sesión</h2>
+    <p>Ingresa tus credenciales para acceder al sistema</p>
+
+    <div class="ion-margin-top">
+      <ion-item lines="full">
+        <ion-label position="floating">Usuario</ion-label>
+        <ion-input type="text" [(ngModel)]="username"></ion-input>
+      </ion-item>
+
+      <ion-item lines="full" class="ion-margin-top">
+        <ion-label position="floating">Contraseña</ion-label>
+        <ion-input type="password" [(ngModel)]="password"></ion-input>
+      </ion-item>
+
+      <ion-button expand="block" color="primary" class="ion-margin-top" (click)="onLogin()">
+        INGRESAR
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

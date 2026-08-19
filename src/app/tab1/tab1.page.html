@@ -1,43 +1,25 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Lavandería Santrix - Dashboard</ion-title>
+    <ion-title>Ordenes Lavandería</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando órdenes...</p>
+  </div>
 
-  <!-- SECCIÓN DE REPORTE CON CACHÉ -->
-  <ion-card color="light" *ngIf="reporte">
-    <ion-card-header>
-      <ion-card-title>Reporte Mensual Optimizado</ion-card-title>
-      <ion-card-subtitle>Estado: {{ reporte.status }}</ion-card-subtitle>
-    </ion-card-header>
-    <ion-card-content>
-      <p><strong>Datos:</strong> {{ reporte.datos }}</p>
-      <p style="color: green; margin-top: 10px;">
-        <small>💡 {{ reporte.nota }}</small>
-      </p>
-    </ion-card-content>
-  </ion-card>
-
-  <!-- SECCIÓN DE ÓRDENES EVITANDO N+1 -->
-  <h5 class="ion-padding-start" style="margin-top: 20px;">Órdenes Recientes (Consulta Eficiente)</h5>
-  
-  <ion-list lines="full">
-    <!-- Si no hay órdenes todavía -->
-    <ion-item *ngIf="ordenes.length === 0">
-      <ion-label class="ion-text-center" color="medium">
-        No hay órdenes registradas en MySQL todavía.
-      </ion-label>
-    </ion-item>
-
-    <!-- Si el backend devuelve órdenes, se listarán aquí automáticamente -->
-    <ion-item *ngFor="let orden of ordenes">
+  <ion-list *ngIf="!cargando && ordenes.length > 0">
+    <ion-item *ngFor="let item of ordenes">
       <ion-label>
-        <h2>Órden #{{ orden.id }}</h2>
-        <p>Cliente: {{ orden.cliente }}</p>
+        <h2>{{ item.servicio }}</h2>
+        <p>Cliente: {{ item.cliente }}</p>
       </ion-label>
     </ion-item>
   </ion-list>
 
+  <div *ngIf="!cargando && ordenes.length === 0" class="ion-text-center">
+    <p>No se encontraron órdenes registradas.</p>
+  </div>
 </ion-content>

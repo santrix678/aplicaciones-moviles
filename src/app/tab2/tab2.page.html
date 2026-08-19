@@ -1,86 +1,26 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Pedidos Activos</ion-title>
+    <ion-title>Proceso Asíncrono</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  
-  <!-- Encabezado de bienvenida o resumen -->
-  <div class="welcome-container ion-margin-bottom">
-    <h2>¡Hola! Así van tus prendas</h2>
-    <p>Aquí puedes ver el estado actual de tus órdenes en Santrix.</p>
-  </div>
-
-  <!-- TARJETA DE PEDIDO 1 (En Proceso) -->
-  <ion-card color="light">
+<ion-content class="ion-padding ion-text-center">
+  <ion-card>
     <ion-card-header>
-      <ion-row class="ion-justify-content-between ion-align-items-center">
-        <ion-card-subtitle><b>ÓRDEN #STX-9842</b></ion-card-subtitle>
-        <ion-chip color="warning">
-          <ion-label>En Lavado</ion-label>
-        </ion-chip>
-      </ion-row>
-      <ion-card-title class="ion-margin-top">Lavado + Secado por Libras</ion-card-title>
+      <ion-card-title>Registrar Nueva Orden</ion-card-title>
     </ion-card-header>
-
     <ion-card-content>
-      <p><b>Detalle:</b> 12 Libras de ropa diaria (color/blanca).</p>
-      <p><b>Fecha de recepción:</b> Hoy, 18/07/2026</p>
+      <p>Envía una orden al servidor. El backend responderá inmediatamente y procesará la tarea en segundo plano.</p>
       
-      <!-- Barra de progreso simulada -->
-      <div class="progress-container ion-margin-vertical">
-        <ion-progress-bar color="warning" value="0.5"></ion-progress-bar>
-        <ion-row class="ion-justify-content-between ion-margin-top text-small">
-          <span class="step-active">Recibido</span>
-          <span class="step-active"><b>Lavando</b></span>
-          <span class="step-inactive">Listo</span>
-        </ion-row>
-      </div>
-
-      <ion-item lines="none" class="ion-no-padding bg-transparent">
-        <ion-icon name="time-outline" slot="start" color="warning"></ion-icon>
-        <ion-label>Entrega estimada: Mañana, 4:00 PM</ion-label>
-      </ion-item>
-    </ion-card-content>
-  </ion-card>
-
-  <!-- TARJETA DE PEDIDO 2 (Listo para Retirar / Entregar) -->
-  <ion-card color="light">
-    <ion-card-header>
-      <ion-row class="ion-justify-content-between ion-align-items-center">
-        <ion-card-subtitle><b>ÓRDEN #STX-9711</b></ion-card-subtitle>
-        <ion-chip color="success">
-          <ion-label>Listo</ion-label>
-        </ion-chip>
-      </ion-row>
-      <ion-card-title class="ion-margin-top">Cobijas y Edredones (2 Plazas)</ion-card-title>
-    </ion-card-header>
-
-    <ion-card-content>
-      <p><b>Detalle:</b> 2 Edredones térmicos + 1 Cobija de felpa.</p>
-      <p><b>Fecha de recepción:</b> 16/07/2026</p>
-
-      <!-- Barra de progreso al 100% -->
-      <div class="progress-container ion-margin-vertical">
-        <ion-progress-bar color="success" value="1.0"></ion-progress-bar>
-        <ion-row class="ion-justify-content-between ion-margin-top text-small">
-          <span class="step-active">Recibido</span>
-          <span class="step-active">Lavado</span>
-          <span class="step-active"><b>¡Listo!</b></span>
-        </ion-row>
-      </div>
-
-      <ion-item lines="none" class="ion-no-padding bg-transparent">
-        <ion-icon name="checkmark-circle-outline" slot="start" color="success"></ion-icon>
-        <ion-label>Tus prendas están empaquetadas y listas.</ion-label>
-      </ion-item>
-      
-      <ion-button expand="block" fill="outline" color="success" class="ion-margin-top">
-        <ion-icon name="location-outline" slot="start"></ion-icon>
-        Solicitar Delivery a Domicilio
+      <ion-button expand="block" color="success" class="ion-margin-top" (click)="crearNuevaOrden()" [disabled]="enviando">
+        <ion-spinner *ngIf="enviando" name="crescent"></ion-spinner>
+        <span *ngIf="!enviando">Procesar Orden (Worker)</span>
       </ion-button>
+
+      <ion-note color="primary" class="ion-margin-top" *ngIf="mensajeRespuesta">
+        <p><strong>Respuesta de Flask:</strong> {{ mensajeRespuesta }}</p>
+      </ion-note>
     </ion-card-content>
   </ion-card>
-
 </ion-content>
+  

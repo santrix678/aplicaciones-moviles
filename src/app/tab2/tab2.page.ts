@@ -1,24 +1,8 @@
 import { Component } from '@angular/core';
-import { 
-  IonHeader, 
-  IonToolbar, 
-  IonTitle, 
-  IonContent, 
-  IonCard, 
-  IonCardHeader, 
-  IonCardSubtitle, 
-  IonCardTitle, 
-  IonCardContent, 
-  IonChip, 
-  IonLabel, 
-  IonProgressBar, 
-  IonRow, 
-  IonItem, 
-  IonIcon, 
-  IonButton 
-} from '@ionic/angular/standalone';
-import { addIcons } from 'ionicons';
-import { timeOutline, checkmarkCircleOutline, locationOutline } from 'ionicons/icons';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { IonicModule } from '@ionic/angular';
+import { LavanderiaService } from '../services/lavanderia';
 
 @Component({
   selector: 'app-tab2',
@@ -26,26 +10,36 @@ import { timeOutline, checkmarkCircleOutline, locationOutline } from 'ionicons/i
   styleUrls: ['tab2.page.scss'],
   standalone: true,
   imports: [
-    IonHeader, 
-    IonToolbar, 
-    IonTitle, 
-    IonContent, 
-    IonCard, 
-    IonCardHeader, 
-    IonCardSubtitle, 
-    IonCardTitle, 
-    IonCardContent, 
-    IonChip, 
-    IonLabel, 
-    IonProgressBar, 
-    IonRow, 
-    IonItem, 
-    IonIcon, 
-    IonButton
+    IonicModule,     // <-- Soluciona todos los errores de 'ion-header', 'ion-button', etc.
+    CommonModule,    // <-- Soluciona las advertencias de '*ngIf'
+    FormsModule      // <-- Permite el uso de formularios e inputs
   ]
 })
 export class Tab2Page {
-  constructor() {
-    addIcons({ timeOutline, checkmarkCircleOutline, locationOutline });
+  enviando = false;
+  mensajeRespuesta = '';
+
+  constructor(private lavanderiaService: LavanderiaService) {}
+
+  crearNuevaOrden() {
+    this.enviando = true;
+    this.mensajeRespuesta = '';
+
+    const nuevaOrdenData = {
+      servicio: 'Lavado Express de Edredón',
+      cliente_id: 1
+    };
+
+    this.lavanderiaService.crearOrden(nuevaOrdenData).subscribe({
+      next: (res: any) => {
+        this.enviando = false;
+        this.mensajeRespuesta = res.mensaje || 'Orden enviada con éxito al worker.';
+      },
+      error: (err) => {
+        this.enviando = false;
+        this.mensajeRespuesta = 'Error al conectar con la API';
+        console.error(err);
+      }
+    });
   }
 }

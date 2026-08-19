@@ -1,17 +1,31 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Tab 3
-    </ion-title>
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Reporte Financiero (Cache)</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 3</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding ion-text-center">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Estrategia Cache-Aside</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p>Haz clic para solicitar el reporte pesado desde Flask.</p>
 
-  <app-explore-container name="Tab 3 page"></app-explore-container>
+      <ion-button expand="block" class="ion-margin-top" (click)="obtenerReporte()" [disabled]="cargando">
+        <ion-spinner *ngIf="cargando" name="crescent"></ion-spinner>
+        <span *ngIf="!cargando">Consultar Reporte</span>
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card *ngIf="reporte" class="ion-margin-top">
+    <ion-card-header>
+      <ion-card-subtitle color="success">Tiempo de respuesta: {{ tiempoRespuesta }} ms</ion-card-subtitle>
+      <ion-card-title>{{ reporte.datos }}</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p><strong>Nota:</strong> {{ reporte.nota }}</p>
+    </ion-card-content>
+  </ion-card>
 </ion-content>
