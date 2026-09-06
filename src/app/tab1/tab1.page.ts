@@ -1,35 +1,26 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth';
 import { IonicModule } from '@ionic/angular';
-import { LavanderiaService } from '../services/lavanderia';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule] // <-- Agregar aquí
+  imports: [IonicModule, CommonModule],
 })
-export class Tab1Page implements OnInit {
-  ordenes: any[] = [];
-  cargando: boolean = true;
+export class Tab1Page {
 
-  constructor(private lavanderiaService: LavanderiaService) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  ngOnInit() {
-    this.cargarOrdenes();
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
-  cargarOrdenes() {
-    this.lavanderiaService.getOrdenes().subscribe({
-      next: (data) => {
-        this.ordenes = data;
-        this.cargando = false;
-      },
-      error: (err) => {
-        console.error('Error conectando a Flask:', err);
-        this.cargando = false;
-      }
-    });
-  }
 }

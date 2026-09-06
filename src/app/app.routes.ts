@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { TabsPage } from './tabs/tabs.page';
+import { authGuard } from './guards/auth-guard'; // <-- Importamos el guard de autenticación
 
 export const routes: Routes = [
   {
@@ -10,6 +11,7 @@ export const routes: Routes = [
   {
     path: 'tabs',
     component: TabsPage,
+    canActivate: [authGuard], // <-- Protegemos todas las pestañas con el AuthGuard
     children: [
       {
         path: 'tab1',
