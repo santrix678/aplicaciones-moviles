@@ -2,131 +2,112 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_cors import CORS
+from sqlalchemy.orm import joinedload
 import time
-import threading  # Para tareas asíncronas en segundo plano
+import threading
 
 app = Flask(__name__)
-# Permitir peticiones CORS desde cualquier origen para evitar bloqueos con Ionic
-CORS(app)
 
-# 1. Configuración de la Base de Datos (SQLite local)
+# Habilitar CORS para todas las rutas y orígenes
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# Configuración SQLite local
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lavanderia.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Permite hasta 16MB
+
 db = SQLAlchemy(app)
 
-# 2. Configuración de Flask-Caching (Estrategia Cache-Aside)
+# Cache-Aside
 app.config['CACHE_TYPE'] = 'SimpleCache'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 30  # TTL de 30 segundos
+app.config['CACHE_DEFAULT_TIMEOUT'] = 30
 cache = Cache(app)
 
-
-# --- MODELOS (Eager Loading aplicado para optimizar consultas) ---
+# Modelos
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     ordenes = db.relationship('Orden', backref='cliente', lazy=True)
 
-
 class Orden(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     servicio = db.Column(db.String(100), nullable=False)
+    direccion = db.Column(db.String(200), nullable=True)
+    latitud = db.Column(db.Float, nullable=True)
+    longitud = db.Column(db.Float, nullable=True)
+    foto_prenda = db.Column(db.Text, nullable=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
 
+def tarea_pesada_async(orden_id, direccion):
+    print(f"\n[WORKER ASÍNCRONO] Procesando notificación para Orden #{orden_id} (Dirección: {direccion})...")
+    time.sleep(3)
+    print(f"[WORKER ASÍNCRONO] Tarea completada: Notificación enviada al motorizado de Santrix para la Orden #{orden_id}.\n")
 
-# --- FUNCIÓN ASÍNCRONA (Worker en segundo plano) ---
-def tarea_pesada_async(orden_id, servicio):
-    """Simula un worker procesando el envío de una notificación o PDF en segundo plano"""
-    print(f"\n[WORKER ASÍNCRONO] Iniciando procesamiento para la orden #{orden_id} ({servicio})...")
-    time.sleep(5)  # Simula proceso pesado de 5 segundos
-    print(f"[WORKER ASÍNCRONO] Tarea completada: Notificación enviada al cliente para la orden #{orden_id}.\n")
-
-
-# --- RUTAS DE LA API ---
-
-# 1. Autenticación Optimizada
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
-    datos = request.get_json() or {}
-    username = datos.get('username', 'Usuario')
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+        
     return jsonify({
-        "status": "Authenticated",
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.santrix-token-ejemplo",
-        "usuario": username
+        "status": "Authenticated", 
+        "token": "santrix-token-ejemplo", 
+        "usuario": "Santiago"
     }), 200
 
-
-# 2. Solución al problema N+1 usando Eager Loading ('joinedload')
 @app.route('/api/ordenes', methods=['GET'])
 def get_ordenes_optimizadas():
-    start_time = time.time()
-    
-    # SOLUCIÓN N+1: Carga órdenes y clientes en un solo JOIN SQL
-    ordenes = Orden.query.options(db.joinedload(Orden.cliente)).all()
-    
-    resultado = [{
-        "id": o.id,
-        "servicio": o.servicio,
-        "cliente": o.cliente.nombre
-    } for o in ordenes]
-    
-    duracion = time.time() - start_time
-    print(f"[LOG SQL] Consulta optimizada ejecutada en {duracion:.5f} segundos (1 solo JOIN).")
+    ordenes = Orden.query.options(joinedload(Orden.cliente)).all()
+    resultado = [
+        {
+            "id": o.id, 
+            "servicio": o.servicio, 
+            "direccion": o.direccion, 
+            "cliente": o.cliente.nombre
+        } for o in ordenes
+    ]
     return jsonify(resultado), 200
 
-
-# 3. Cache-Aside Strategy (Reporte Costoso)
-@app.route('/api/reporte-lavanderia', methods=['GET'])
-@cache.cached(timeout=30)  # Almacena en memoria RAM por 30 segundos
-def get_reporte_pesado():
-    print("\n[CACHE MISS] Generando reporte pesado desde la base de datos (demora 3s)...")
-    time.sleep(3) 
-    return jsonify({
-        "status": "success",
-        "datos": "Reporte financiero mensual de Lavandería Santrix.",
-        "nota": "La primera carga tarda 3s. Las siguientes respuestas son instantáneas (0ms) desde caché."
-    }), 200
-
-
-# 4. Creación de Orden con Tarea Asíncrona
-@app.route('/api/nueva-orden', methods=['POST'])
+@app.route('/api/pedidos', methods=['POST', 'OPTIONS'])
+@app.route('/api/nueva-orden', methods=['POST', 'OPTIONS'])
 def crear_orden_async():
-    datos = request.get_json() or {}
-    servicio_nom = datos.get('servicio', 'Servicio General')
-    cliente_id = datos.get('cliente_id', 1)
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
 
-    # 1. Almacenar en Base de Datos
-    nueva_orden = Orden(servicio=servicio_nom, cliente_id=cliente_id)
+    datos = request.get_json() or {}
+    
+    direccion_nom = datos.get('direccion', 'Recogida local')
+    lat = datos.get('latitud')
+    lng = datos.get('longitud')
+    foto = datos.get('foto_prenda')
+
+    nueva_orden = Orden(
+        servicio="Lavado Express de Prenda",
+        direccion=direccion_nom,
+        latitud=lat,
+        longitud=lng,
+        foto_prenda=foto,
+        cliente_id=1
+    )
     db.session.add(nueva_orden)
     db.session.commit()
 
-    # 2. Delegar la tarea pesada al hilo secundario
-    hilo_worker = threading.Thread(target=tarea_pesada_async, args=(nueva_orden.id, servicio_nom))
+    hilo_worker = threading.Thread(target=tarea_pesada_async, args=(nueva_orden.id, direccion_nom))
     hilo_worker.start()
 
-    # 3. Responder de inmediato al cliente sin esperar los 5 segundos
     return jsonify({
-        "status": "Orden recibida",
+        "status": "success",
         "id": nueva_orden.id,
-        "mensaje": f"La orden #{nueva_orden.id} se creó. Notificación en proceso en segundo plano."
-    }), 202
+        "mensaje": f"¡Orden #{nueva_orden.id} registrada exitosamente en Santrix!"
+    }), 201
 
-
-# --- INICIALIZACIÓN Y CONFIGURACIÓN DEL HOST ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # Insertar datos iniciales si la base de datos está vacía
         if Cliente.query.count() == 0:
-            c1 = Cliente(nombre="Juan Pérez (Edredones)")
-            c2 = Cliente(nombre="María Carmen (Ropa de Cama)")
-            db.session.add_all([c1, c2])
+            c1 = Cliente(nombre="Santiago Ríos")
+            db.session.add(c1)
             db.session.commit()
-            
-            o1 = Orden(servicio="Lavado de Edredón 2 Plazas", cliente_id=c1.id)
-            o2 = Orden(servicio="Lavado Seco - Terno", cliente_id=c2.id)
-            db.session.add_all([o1, o2])
-            db.session.commit()
-            print("[DATABASE] Base de datos 'lavanderia.db' inicializada con éxito.")
+            print("[DATABASE] Base de datos inicializada correctamente.")
 
-    # CORRECCIÓN CLAVE: host='0.0.0.0' soluciona el error ERR_CONNECTION_REFUSED
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Servidor activo escudriñando peticiones remotas en el puerto 5001
+    app.run(host='0.0.0.0', port=5001, debug=True)
