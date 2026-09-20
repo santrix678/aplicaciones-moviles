@@ -1,38 +1,142 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Lavandería Santrix - Login</ion-title>
+    <ion-title>Lavandería Santrix</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
-    <ion-item>
-      <ion-label position="floating">Usuario</ion-label>
-      <ion-input type="text" formControlName="username"></ion-input>
-    </ion-item>
-    <div *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
-      <ion-text color="danger">
-        <small>El usuario es obligatorio (mínimo 3 caracteres).</small>
-      </ion-text>
+<ion-content class="login-content">
+
+  <div class="login-container">
+
+    <div class="logo-section">
+
+      <div class="logo-icon">
+        🧺
+      </div>
+
+      <h1>Lavandería Santrix</h1>
+
+      <p>Sistema de gestión de órdenes</p>
+
     </div>
 
-    <ion-item>
-      <ion-label position="floating">Contraseña</ion-label>
-      <ion-input type="password" formControlName="password"></ion-input>
-    </ion-item>
-    <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-      <ion-text color="danger">
-        <small>La contraseña es obligatoria (mínimo 4 caracteres).</small>
-      </ion-text>
-    </div>
 
-    <ion-text color="danger" *ngIf="errorMessage">
-      <p class="ion-padding-top">{{ errorMessage }}</p>
-    </ion-text>
+    <ion-card>
 
-    <ion-button expand="block" type="submit" [disabled]="loginForm.invalid" class="ion-margin-top">
-      Iniciar Sesión
-    </ion-button>
-  </form>
+      <ion-card-header>
+
+        <ion-card-title>
+          Iniciar Sesión
+        </ion-card-title>
+
+        <ion-card-subtitle>
+          Ingresa tus credenciales
+        </ion-card-subtitle>
+
+      </ion-card-header>
+
+
+      <ion-card-content>
+
+        <form
+          [formGroup]="loginForm"
+          (ngSubmit)="onLogin()">
+
+
+          <!-- USUARIO -->
+
+          <ion-item>
+
+            <ion-input
+              type="text"
+              label="Usuario"
+              labelPlacement="stacked"
+              placeholder="Ingresa tu usuario"
+              formControlName="username">
+            </ion-input>
+
+          </ion-item>
+
+
+          <ion-text
+            color="danger"
+            *ngIf="
+              loginForm.get('username')?.invalid &&
+              loginForm.get('username')?.touched
+            ">
+
+            <p class="error-text">
+              El usuario debe tener mínimo 3 caracteres.
+            </p>
+
+          </ion-text>
+
+
+          <!-- CONTRASEÑA -->
+
+          <ion-item class="password-item">
+
+            <ion-input
+              type="password"
+              label="Contraseña"
+              labelPlacement="stacked"
+              placeholder="Ingresa tu contraseña"
+              formControlName="password">
+            </ion-input>
+
+          </ion-item>
+
+
+          <ion-text
+            color="danger"
+            *ngIf="
+              loginForm.get('password')?.invalid &&
+              loginForm.get('password')?.touched
+            ">
+
+            <p class="error-text">
+              La contraseña debe tener mínimo 4 caracteres.
+            </p>
+
+          </ion-text>
+
+
+          <!-- ERROR LOGIN -->
+
+          <ion-text
+            color="danger"
+            *ngIf="errorMessage">
+
+            <p class="login-error">
+              {{ errorMessage }}
+            </p>
+
+          </ion-text>
+
+
+          <!-- BOTÓN -->
+
+          <ion-button
+            expand="block"
+            type="submit"
+            [disabled]="loginForm.invalid"
+            class="login-button">
+
+            Iniciar Sesión
+
+          </ion-button>
+
+        </form>
+
+      </ion-card-content>
+
+    </ion-card>
+
+
+    <p class="footer">
+      Lavandería Santrix © 2026
+    </p>
+
+  </div>
+
 </ion-content>
-

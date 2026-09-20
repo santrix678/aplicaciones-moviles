@@ -1,10 +1,314 @@
-<ion-header>
+<ion-header [translucent]="true">
+
   <ion-toolbar color="primary">
-    <ion-title>Panel Principal</ion-title>
+
+    <ion-title>
+      Lavandería Santrix
+    </ion-title>
+
     <ion-buttons slot="end">
-      <ion-button (click)="logout()">
-        <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
+
+      <ion-button
+        color="light"
+        (click)="logout()">
+
+        <ion-icon
+          slot="start"
+          name="log-out-outline">
+        </ion-icon>
+
+        Salir
+
       </ion-button>
+
     </ion-buttons>
+
   </ion-toolbar>
+
 </ion-header>
+
+
+<ion-content
+  [fullscreen]="true"
+  class="ion-padding">
+
+
+  <!-- NUEVA ORDEN -->
+
+  <ion-card>
+
+    <ion-card-header>
+
+      <ion-card-title>
+        Nueva Orden
+      </ion-card-title>
+
+      <ion-card-subtitle>
+        Recogida de prendas
+      </ion-card-subtitle>
+
+    </ion-card-header>
+
+
+    <ion-card-content>
+
+      Registra una fotografía de la prenda
+      y la ubicación de recogida.
+
+    </ion-card-content>
+
+  </ion-card>
+
+
+
+  <!-- CÁMARA -->
+
+  <ion-card>
+
+    <ion-card-header>
+
+      <ion-card-title>
+        📷 Fotografía de la prenda
+      </ion-card-title>
+
+    </ion-card-header>
+
+
+    <ion-card-content>
+
+      <p>
+        La fotografía es opcional.
+        Si no autorizas la cámara,
+        podrás continuar con la orden.
+      </p>
+
+
+      <ion-button
+        expand="block"
+        color="primary"
+        (click)="capturarFoto()">
+
+        <ion-icon
+          slot="start"
+          name="camera-outline">
+        </ion-icon>
+
+        Tomar Foto
+
+      </ion-button>
+
+
+      <ion-text
+        color="medium"
+        *ngIf="mensajeCamara">
+
+        <p>
+          {{ mensajeCamara }}
+        </p>
+
+      </ion-text>
+
+
+      <div
+        *ngIf="fotoPrenda"
+        class="ion-text-center ion-margin-top">
+
+        <img
+          [src]="fotoPrenda"
+          alt="Fotografía de la prenda"
+          style="
+            max-height: 220px;
+            max-width: 100%;
+            border-radius: 12px;
+          "
+        />
+
+
+        <p>
+          ✓ Fotografía lista para enviar
+        </p>
+
+      </div>
+
+    </ion-card-content>
+
+  </ion-card>
+
+
+
+  <!-- UBICACIÓN -->
+
+  <ion-card>
+
+    <ion-card-header>
+
+      <ion-card-title>
+        📍 Ubicación de recogida
+      </ion-card-title>
+
+    </ion-card-header>
+
+
+    <ion-card-content>
+
+      <p>
+        Puedes permitir el acceso a tu ubicación
+        o escribir la dirección manualmente.
+      </p>
+
+
+      <ion-button
+        expand="block"
+        color="secondary"
+        (click)="capturarUbicacion()">
+
+        <ion-icon
+          slot="start"
+          name="location-outline">
+        </ion-icon>
+
+        Obtener mi ubicación
+
+      </ion-button>
+
+
+      <ion-text
+        color="medium"
+        *ngIf="mensajeUbicacion">
+
+        <p>
+          {{ mensajeUbicacion }}
+        </p>
+
+      </ion-text>
+
+
+      <div
+        *ngIf="coordenadas"
+        class="ion-margin-top">
+
+        <ion-chip color="success">
+
+          <ion-icon
+            name="pin-outline">
+          </ion-icon>
+
+
+          <ion-label>
+
+            Lat:
+            {{ coordenadas.lat.toFixed(5) }}
+
+            <br>
+
+            Lng:
+            {{ coordenadas.lng.toFixed(5) }}
+
+          </ion-label>
+
+        </ion-chip>
+
+      </div>
+
+    </ion-card-content>
+
+  </ion-card>
+
+
+
+  <!-- DIRECCIÓN MANUAL -->
+
+  <ion-card>
+
+    <ion-card-header>
+
+      <ion-card-title>
+        🏠 Dirección de recogida
+      </ion-card-title>
+
+    </ion-card-header>
+
+
+    <ion-card-content>
+
+      <p>
+        Si no deseas compartir tu ubicación,
+        puedes escribir la dirección.
+      </p>
+
+
+      <ion-item>
+
+        <ion-input
+
+          label="Dirección"
+
+          labelPlacement="stacked"
+
+          [(ngModel)]="direccionManual"
+
+          (ionInput)="guardarBorradorLocal()"
+
+          placeholder="Ej. Av. Amazonas y Colón">
+
+        </ion-input>
+
+      </ion-item>
+
+    </ion-card-content>
+
+  </ion-card>
+
+
+
+  <!-- BACKEND -->
+
+  <ion-card>
+
+    <ion-card-header>
+
+      <ion-card-title>
+        ☁️ Registrar Orden
+      </ion-card-title>
+
+    </ion-card-header>
+
+
+    <ion-card-content>
+
+      <ion-button
+
+        expand="block"
+
+        color="success"
+
+        (click)="enviarOrden()">
+
+        <ion-icon
+          slot="start"
+          name="send-outline">
+        </ion-icon>
+
+        Registrar Orden en Backend
+
+      </ion-button>
+
+
+      <ion-text
+        *ngIf="mensajeBackend"
+        color="primary">
+
+        <p class="ion-text-center">
+
+          {{ mensajeBackend }}
+
+        </p>
+
+      </ion-text>
+
+    </ion-card-content>
+
+  </ion-card>
+
+
+</ion-content>
