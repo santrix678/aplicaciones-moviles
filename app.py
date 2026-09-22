@@ -7,6 +7,10 @@ import time
 import threading
 
 
+# ==========================================================
+# APLICACIÓN FLASK
+# ==========================================================
+
 app = Flask(__name__)
 
 
@@ -40,6 +44,10 @@ app.config['CACHE_TYPE'] = 'SimpleCache'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 30
 
 cache = Cache(app)
+
+
+# Clave utilizada por el reporte financiero
+CLAVE_CACHE_REPORTE = 'reporte_financiero_santrix'
 
 
 # ==========================================================
@@ -80,7 +88,6 @@ class Orden(db.Model):
         nullable=True
     )
 
-    # Ubicación opcional
     latitud = db.Column(
         db.Float,
         nullable=True
@@ -91,7 +98,6 @@ class Orden(db.Model):
         nullable=True
     )
 
-    # Fotografía opcional
     foto_prenda = db.Column(
         db.Text,
         nullable=True
@@ -101,6 +107,27 @@ class Orden(db.Model):
         db.Integer,
         db.ForeignKey('cliente.id'),
         nullable=False
+    )
+
+
+# ==========================================================
+# FUNCIÓN PARA INVALIDAR CACHÉ
+# ==========================================================
+
+def invalidar_cache():
+
+    # Elimina el caché de la lista de órdenes
+    cache.delete_memoized(
+        get_ordenes_optimizadas
+    )
+
+    # Elimina el caché del reporte financiero
+    cache.delete(
+        CLAVE_CACHE_REPORTE
+    )
+
+    print(
+        "[CACHE] Caché invalidado correctamente."
     )
 
 
@@ -116,6 +143,7 @@ def tarea_pesada_async(orden_id, direccion):
         f"(Dirección: {direccion})..."
     )
 
+    # Simulación de tarea pesada
     time.sleep(3)
 
     print(
@@ -141,18 +169,28 @@ def login():
             'status': 'ok'
         }), 200
 
+    datos = request.get_json() or {}
+
+    username = datos.get('username', '')
+    password = datos.get('password', '')
+
+    # Login demostrativo para el proyecto
+    if not username or not password:
+        return jsonify({
+            "status": "error",
+            "mensaje": "Usuario y contraseña son obligatorios."
+        }), 400
+
     return jsonify({
         "status": "Authenticated",
         "token": "santrix-token-ejemplo",
-        "usuario": "Santiago"
+        "usuario": username
     }), 200
 
 
 # ==========================================================
 # CONSULTAR ÓRDENES - READ
-# OPTIMIZACIÓN:
-# - joinedload reduce consultas adicionales
-# - cache conserva el resultado durante 30 segundos
+# OPTIMIZACIÓN N+1 + CACHÉ
 # ==========================================================
 
 @app.route(
@@ -167,21 +205,26 @@ def get_ordenes_optimizadas():
         "desde la base de datos."
     )
 
+    # joinedload evita consultas adicionales por cada cliente
     ordenes = Orden.query.options(
         joinedload(Orden.cliente)
     ).all()
 
     resultado = [
         {
-            "id": o.id,
-            "servicio": o.servicio,
-            "direccion": o.direccion,
-            "latitud": o.latitud,
-            "longitud": o.longitud,
-            "tiene_foto": bool(o.foto_prenda),
-            "cliente": o.cliente.nombre
+            "id": orden.id,
+            "servicio": orden.servicio,
+            "direccion": orden.direccion,
+            "latitud": orden.latitud,
+            "longitud": orden.longitud,
+            "tiene_foto": bool(orden.foto_prenda),
+            "cliente": (
+                orden.cliente.nombre
+                if orden.cliente
+                else "Sin cliente"
+            )
         }
-        for o in ordenes
+        for orden in ordenes
     ]
 
     return jsonify(resultado), 200
@@ -218,15 +261,22 @@ def crear_orden_async():
     if not direccion_nom:
         direccion_nom = 'Recogida local'
 
-    # Ubicación enviada desde Capacitor Geolocation
+    servicio = str(
+        datos.get(
+            'servicio',
+            'Lavado Express de Prenda'
+        )
+    ).strip()
+
+    if not servicio:
+        servicio = 'Lavado Express de Prenda'
+
     lat = datos.get('latitud')
     lng = datos.get('longitud')
-
-    # Fotografía enviada desde Capacitor Camera
     foto = datos.get('foto_prenda')
 
     nueva_orden = Orden(
-        servicio="Lavado Express de Prenda",
+        servicio=servicio,
         direccion=direccion_nom,
         latitud=lat,
         longitud=lng,
@@ -237,18 +287,12 @@ def crear_orden_async():
     db.session.add(nueva_orden)
     db.session.commit()
 
-    # Limpiar caché porque los datos cambiaron
-    cache.delete_memoized(
-        get_ordenes_optimizadas
-    )
+    # Los datos cambiaron, por lo tanto se elimina el caché
+    invalidar_cache()
 
     print(
         f"[DATABASE] Orden #{nueva_orden.id} "
         f"guardada correctamente."
-    )
-
-    print(
-        "[CACHE] Caché de órdenes invalidado."
     )
 
     print(
@@ -257,20 +301,25 @@ def crear_orden_async():
     )
 
     if foto:
+
         print(
             "[CÁMARA] Fotografía recibida correctamente."
         )
+
     else:
+
         print(
             "[CÁMARA] Orden registrada sin fotografía."
         )
 
+    # Procesamiento asíncrono
     hilo_worker = threading.Thread(
         target=tarea_pesada_async,
         args=(
             nueva_orden.id,
             direccion_nom
-        )
+        ),
+        daemon=True
     )
 
     hilo_worker.start()
@@ -283,6 +332,7 @@ def crear_orden_async():
             f"registrada exitosamente en Santrix!",
         "datos": {
             "direccion": direccion_nom,
+            "servicio": servicio,
             "latitud": lat,
             "longitud": lng,
             "foto_recibida": bool(foto)
@@ -311,6 +361,7 @@ def actualizar_orden(orden_id):
     )
 
     if orden is None:
+
         return jsonify({
             "status": "error",
             "mensaje": "La orden no existe."
@@ -319,11 +370,17 @@ def actualizar_orden(orden_id):
     datos = request.get_json() or {}
 
     if not datos:
+
         return jsonify({
             "status": "error",
             "mensaje":
                 "No se enviaron datos para actualizar."
         }), 400
+
+
+    # ------------------------------------------------------
+    # ACTUALIZAR SERVICIO
+    # ------------------------------------------------------
 
     if 'servicio' in datos:
 
@@ -332,6 +389,7 @@ def actualizar_orden(orden_id):
         ).strip()
 
         if not servicio:
+
             return jsonify({
                 "status": "error",
                 "mensaje":
@@ -340,6 +398,11 @@ def actualizar_orden(orden_id):
 
         orden.servicio = servicio
 
+
+    # ------------------------------------------------------
+    # ACTUALIZAR DIRECCIÓN
+    # ------------------------------------------------------
+
     if 'direccion' in datos:
 
         direccion = str(
@@ -347,6 +410,7 @@ def actualizar_orden(orden_id):
         ).strip()
 
         if not direccion:
+
             return jsonify({
                 "status": "error",
                 "mensaje":
@@ -355,35 +419,43 @@ def actualizar_orden(orden_id):
 
         orden.direccion = direccion
 
+
+    # ------------------------------------------------------
+    # ACTUALIZAR UBICACIÓN
+    # ------------------------------------------------------
+
     if 'latitud' in datos:
         orden.latitud = datos['latitud']
 
     if 'longitud' in datos:
         orden.longitud = datos['longitud']
 
+
+    # ------------------------------------------------------
+    # ACTUALIZAR FOTO
+    # ------------------------------------------------------
+
     if 'foto_prenda' in datos:
         orden.foto_prenda = datos['foto_prenda']
 
+
     db.session.commit()
 
-    # Limpiar caché porque los datos cambiaron
-    cache.delete_memoized(
-        get_ordenes_optimizadas
-    )
+    # Los datos cambiaron
+    invalidar_cache()
 
     print(
         f"[DATABASE] Orden #{orden.id} "
         f"actualizada correctamente."
     )
 
-    print(
-        "[CACHE] Caché de órdenes invalidado."
-    )
-
     return jsonify({
         "status": "success",
+
         "mensaje":
-            f"Orden #{orden.id} actualizada correctamente.",
+            f"Orden #{orden.id} "
+            f"actualizada correctamente.",
+
         "orden": {
             "id": orden.id,
             "servicio": orden.servicio,
@@ -393,6 +465,7 @@ def actualizar_orden(orden_id):
             "tiene_foto":
                 bool(orden.foto_prenda)
         }
+
     }), 200
 
 
@@ -407,6 +480,7 @@ def actualizar_orden(orden_id):
 def eliminar_orden(orden_id):
 
     if request.method == 'OPTIONS':
+
         return jsonify({
             'status': 'ok'
         }), 200
@@ -417,6 +491,7 @@ def eliminar_orden(orden_id):
     )
 
     if orden is None:
+
         return jsonify({
             "status": "error",
             "mensaje": "La orden no existe."
@@ -425,24 +500,186 @@ def eliminar_orden(orden_id):
     db.session.delete(orden)
     db.session.commit()
 
-    # Limpiar caché porque los datos cambiaron
-    cache.delete_memoized(
-        get_ordenes_optimizadas
-    )
+    # Los datos cambiaron
+    invalidar_cache()
 
     print(
         f"[DATABASE] Orden #{orden_id} "
         f"eliminada correctamente."
     )
 
-    print(
-        "[CACHE] Caché de órdenes invalidado."
-    )
-
     return jsonify({
         "status": "success",
         "mensaje":
-            f"Orden #{orden_id} eliminada correctamente."
+            f"Orden #{orden_id} "
+            f"eliminada correctamente."
+    }), 200
+
+
+# ==========================================================
+# REPORTE FINANCIERO
+# ESTRATEGIA CACHE-ASIDE MANUAL
+# ==========================================================
+
+@app.route(
+    '/api/reporte-lavanderia',
+    methods=['GET']
+)
+def reporte_lavanderia():
+
+    # ------------------------------------------------------
+    # PASO 1:
+    # BUSCAR PRIMERO EN CACHÉ
+    # ------------------------------------------------------
+
+    reporte_cache = cache.get(
+        CLAVE_CACHE_REPORTE
+    )
+
+    if reporte_cache is not None:
+
+        print(
+            "[CACHE HIT] "
+            "Reporte financiero obtenido desde caché."
+        )
+
+        return jsonify({
+            "status": "success",
+
+            "reporte": reporte_cache,
+
+            "cache": {
+                "estrategia": "Cache-Aside",
+                "duracion_segundos": 30,
+                "origen": "cache"
+            }
+
+        }), 200
+
+
+    # ------------------------------------------------------
+    # PASO 2:
+    # CACHE MISS
+    # ------------------------------------------------------
+
+    print(
+        "[CACHE MISS] "
+        "Generando reporte financiero "
+        "desde la base de datos."
+    )
+
+
+    # Simulamos una consulta pesada.
+    # Esto permite demostrar la diferencia
+    # entre una consulta normal y una con caché.
+    time.sleep(2)
+
+
+    # ------------------------------------------------------
+    # CONSULTAR BASE DE DATOS
+    # ------------------------------------------------------
+
+    ordenes = Orden.query.all()
+
+    total_ordenes = len(ordenes)
+
+    precio_por_orden = 5.00
+
+    ingresos_estimados = (
+        total_ordenes
+        * precio_por_orden
+    )
+
+
+    # ------------------------------------------------------
+    # CONTAR ÓRDENES CON FOTOGRAFÍA
+    # ------------------------------------------------------
+
+    ordenes_con_foto = sum(
+        1
+        for orden in ordenes
+        if orden.foto_prenda
+    )
+
+
+    # ------------------------------------------------------
+    # CONTAR ÓRDENES CON UBICACIÓN
+    # ------------------------------------------------------
+
+    ordenes_con_ubicacion = sum(
+        1
+        for orden in ordenes
+        if (
+            orden.latitud is not None
+            and
+            orden.longitud is not None
+        )
+    )
+
+
+    # ------------------------------------------------------
+    # CONSTRUIR REPORTE
+    # ------------------------------------------------------
+
+    reporte = {
+
+        "total_ordenes":
+            total_ordenes,
+
+        "precio_por_orden":
+            precio_por_orden,
+
+        "ingresos_estimados":
+            ingresos_estimados,
+
+        "ordenes_con_foto":
+            ordenes_con_foto,
+
+        "ordenes_con_ubicacion":
+            ordenes_con_ubicacion
+    }
+
+
+    # ------------------------------------------------------
+    # PASO 3:
+    # GUARDAR EN CACHÉ DURANTE 30 SEGUNDOS
+    # ------------------------------------------------------
+
+    cache.set(
+        CLAVE_CACHE_REPORTE,
+        reporte,
+        timeout=30
+    )
+
+    print(
+        "[CACHE SET] "
+        "Reporte financiero guardado "
+        "en caché durante 30 segundos."
+    )
+
+
+    # ------------------------------------------------------
+    # RESPUESTA
+    # ------------------------------------------------------
+
+    return jsonify({
+
+        "status": "success",
+
+        "reporte": reporte,
+
+        "cache": {
+
+            "estrategia":
+                "Cache-Aside",
+
+            "duracion_segundos":
+                30,
+
+            "origen":
+                "base_de_datos"
+        }
+
     }), 200
 
 
@@ -456,6 +693,7 @@ if __name__ == '__main__':
 
         db.create_all()
 
+        # Crear cliente inicial si todavía no existe
         if Cliente.query.count() == 0:
 
             c1 = Cliente(

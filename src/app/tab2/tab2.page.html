@@ -6,9 +6,11 @@
 
 <ion-content class="ion-padding">
 
+  <!-- ENCABEZADO -->
   <ion-card>
     <ion-card-header>
       <ion-card-title>Órdenes registradas</ion-card-title>
+
       <ion-card-subtitle>
         Administración de pedidos de Lavandería Santrix
       </ion-card-subtitle>
@@ -16,40 +18,73 @@
 
     <ion-card-content>
 
+      <!-- ACTUALIZAR LISTA -->
       <ion-button
         expand="block"
         fill="outline"
         (click)="cargarOrdenes()">
+
+        <ion-icon
+          name="refresh-outline"
+          slot="start">
+        </ion-icon>
+
         ACTUALIZAR ÓRDENES
+
       </ion-button>
 
+
+      <!-- CARGANDO -->
       <div
         *ngIf="cargando"
         class="ion-text-center ion-padding">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Cargando órdenes...</p>
+
+        <ion-spinner
+          name="crescent">
+        </ion-spinner>
+
+        <p>
+          Cargando órdenes...
+        </p>
+
       </div>
 
-      <ion-text color="primary" *ngIf="mensajeRespuesta">
-        <p>{{ mensajeRespuesta }}</p>
+
+      <!-- MENSAJE -->
+      <ion-text
+        color="primary"
+        *ngIf="mensajeRespuesta">
+
+        <p>
+          {{ mensajeRespuesta }}
+        </p>
+
       </ion-text>
 
     </ion-card-content>
   </ion-card>
 
 
-  <div *ngIf="!cargando && ordenes.length === 0">
-    <ion-card>
-      <ion-card-content class="ion-text-center">
-        No existen órdenes registradas.
-      </ion-card-content>
-    </ion-card>
-  </div>
+  <!-- SIN ÓRDENES -->
+  <ion-card
+    *ngIf="!cargando && ordenes.length === 0">
+
+    <ion-card-content
+      class="ion-text-center">
+
+      No existen órdenes registradas.
+
+    </ion-card-content>
+
+  </ion-card>
 
 
-  <ion-card *ngFor="let orden of ordenes">
+  <!-- LISTA DE ÓRDENES -->
+  <ion-card
+    *ngFor="let orden of ordenes">
 
     <ion-card-header>
+
       <ion-card-title>
         Orden #{{ orden.id }}
       </ion-card-title>
@@ -57,31 +92,68 @@
       <ion-card-subtitle>
         {{ orden.estado || 'Pendiente' }}
       </ion-card-subtitle>
+
     </ion-card-header>
 
 
     <ion-card-content>
 
+      <!-- DIRECCIÓN -->
       <p>
         <strong>Dirección:</strong>
         {{ orden.direccion || 'Sin dirección' }}
       </p>
 
+
+      <!-- SERVICIO -->
       <p *ngIf="orden.servicio">
+
         <strong>Servicio:</strong>
         {{ orden.servicio }}
+
       </p>
 
+
+      <!-- LATITUD -->
       <p *ngIf="orden.latitud">
+
         <strong>Latitud:</strong>
         {{ orden.latitud }}
+
       </p>
 
+
+      <!-- LONGITUD -->
       <p *ngIf="orden.longitud">
+
         <strong>Longitud:</strong>
         {{ orden.longitud }}
+
       </p>
 
+
+      <!-- ========================= -->
+      <!-- BOTÓN EDITAR -->
+      <!-- ========================= -->
+
+      <ion-button
+        color="primary"
+        expand="block"
+        (click)="editarOrden(orden)">
+
+        <ion-icon
+          name="create-outline"
+          slot="start">
+        </ion-icon>
+
+        EDITAR
+
+      </ion-button>
+
+
+      <!-- ========================= -->
+      <!-- BOTÓN ELIMINAR -->
+      <!-- ========================= -->
 
       <ion-button
         color="danger"

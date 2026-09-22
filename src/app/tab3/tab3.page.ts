@@ -9,30 +9,68 @@ import { environment } from 'src/environments/environment';
   templateUrl: 'tab3.page.html',
   styleUrls: ['tab3.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule]
+  imports: [
+    CommonModule,
+    IonicModule
+  ]
 })
 export class Tab3Page {
-  reporte: any = null;
-  cargando: boolean = false;
-  tiempoRespuesta: number = 0;
 
-  constructor(private http: HttpClient) {}
+  reporte: any = null;
+  cargando = false;
+  tiempoRespuesta = 0;
+  mensajeError = '';
+
+  constructor(
+    private http: HttpClient
+  ) {}
 
   obtenerReporte() {
+
     this.cargando = true;
+    this.mensajeError = '';
+
     const inicio = performance.now();
 
-    this.http.get(`${environment.apiUrl}/api/reporte-lavanderia`).subscribe({
-      next: (res: any) => {
-        const fin = performance.now();
-        this.tiempoRespuesta = Math.round(fin - inicio);
-        this.reporte = res;
-        this.cargando = false;
-      },
-      error: (err) => {
-        console.error('Error al obtener reporte:', err);
-        this.cargando = false;
-      }
-    });
+    // environment.apiUrl ya contiene /api
+    this.http
+      .get(`${environment.apiUrl}/reporte-lavanderia`)
+      .subscribe({
+
+        next: (res: any) => {
+
+          const fin = performance.now();
+
+          this.tiempoRespuesta =
+            Math.round(fin - inicio);
+
+          this.reporte = res;
+
+          this.cargando = false;
+
+          console.log(
+            '[CACHE] Reporte recibido:',
+            res
+          );
+
+          console.log(
+            `[CACHE] Tiempo de respuesta: ${this.tiempoRespuesta} ms`
+          );
+        },
+
+        error: (err) => {
+
+          console.error(
+            '[CACHE] Error al obtener reporte:',
+            err
+          );
+
+          this.mensajeError =
+            'No se pudo consultar el reporte.';
+
+          this.cargando = false;
+        }
+
+      });
   }
 }
