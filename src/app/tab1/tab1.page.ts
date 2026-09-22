@@ -28,28 +28,24 @@ import {
 })
 export class Tab1Page {
 
-
   fotoPrenda: string | null = null;
-
 
   coordenadas:
     { lat: number; lng: number } | null = null;
 
-
   direccionManual = '';
 
-
   mensajeCamara = '';
-
   mensajeUbicacion = '';
-
   mensajeBackend = '';
 
-
-  // IMPORTANTE:
-  // Más adelante comprobaremos esta IP.
+  // ==========================================
+  // URL DEL BACKEND
+  // ==========================================
+  // IP actual de la computadora donde
+  // se está ejecutando Flask.
   private backendUrl =
-    'http://192.168.100.94:5001/api/pedidos';
+    'http://192.168.100.83:5001/api/pedidos';
 
 
   constructor(
@@ -70,7 +66,6 @@ export class Tab1Page {
   }
 
 
-
   // ==========================================
   // TOMAR FOTO
   // ==========================================
@@ -80,14 +75,11 @@ export class Tab1Page {
     this.mensajeCamara =
       'Comprobando permiso de cámara...';
 
-
     const resultado =
       await this.nativeService
         .tomarFotoPrenda();
 
-
     switch (resultado.estado) {
-
 
       case 'concedido':
 
@@ -102,7 +94,6 @@ export class Tab1Page {
         break;
 
 
-
       case 'denegado':
 
         this.fotoPrenda = null;
@@ -112,7 +103,6 @@ export class Tab1Page {
           'Puedes continuar sin fotografía.';
 
         break;
-
 
 
       case 'denegado-permanente':
@@ -126,14 +116,12 @@ export class Tab1Page {
         break;
 
 
-
       case 'cancelado':
 
         this.mensajeCamara =
           'La captura fue cancelada.';
 
         break;
-
 
 
       default:
@@ -147,7 +135,6 @@ export class Tab1Page {
   }
 
 
-
   // ==========================================
   // UBICACIÓN
   // ==========================================
@@ -157,14 +144,11 @@ export class Tab1Page {
     this.mensajeUbicacion =
       'Obteniendo ubicación...';
 
-
     const resultado =
       await this.nativeService
         .obtenerUbicacionRecogida();
 
-
     switch (resultado.estado) {
-
 
       case 'concedido':
 
@@ -181,17 +165,14 @@ export class Tab1Page {
 
           };
 
-
           this.mensajeUbicacion =
             '✓ Ubicación obtenida correctamente.';
-
 
           this.guardarBorradorLocal();
 
         }
 
         break;
-
 
 
       case 'denegado':
@@ -203,7 +184,6 @@ export class Tab1Page {
           'Ingresa la dirección manualmente.';
 
         break;
-
 
 
       case 'denegado-permanente':
@@ -218,7 +198,6 @@ export class Tab1Page {
         break;
 
 
-
       case 'no-disponible':
 
         this.coordenadas = null;
@@ -229,7 +208,6 @@ export class Tab1Page {
           'o escribe la dirección manualmente.';
 
         break;
-
 
 
       default:
@@ -243,7 +221,6 @@ export class Tab1Page {
 
     }
   }
-
 
 
   // ==========================================
@@ -268,7 +245,6 @@ export class Tab1Page {
 
     };
 
-
     localStorage.setItem(
 
       'santrix_orden_borrador',
@@ -277,14 +253,12 @@ export class Tab1Page {
 
     );
 
-
     console.log(
       '[LOCAL] Borrador guardado:',
       borrador
     );
 
   }
-
 
 
   // ==========================================
@@ -298,33 +272,27 @@ export class Tab1Page {
         'santrix_orden_borrador'
       );
 
-
     if (!datos) {
 
       return;
 
     }
 
-
     try {
 
       const borrador =
         JSON.parse(datos);
 
-
       this.coordenadas =
         borrador.coordenadas || null;
 
-
       this.direccionManual =
         borrador.direccionManual || '';
-
 
       console.log(
         '[LOCAL] Borrador recuperado:',
         borrador
       );
-
 
     } catch (error) {
 
@@ -332,7 +300,6 @@ export class Tab1Page {
         '[LOCAL] Error:',
         error
       );
-
 
       localStorage.removeItem(
         'santrix_orden_borrador'
@@ -342,13 +309,11 @@ export class Tab1Page {
   }
 
 
-
   // ==========================================
   // ENVIAR AL BACKEND
   // ==========================================
 
   enviarOrden() {
-
 
     if (
       !this.direccionManual.trim() &&
@@ -364,9 +329,7 @@ export class Tab1Page {
 
     }
 
-
     const payload = {
-
 
       direccion:
 
@@ -374,16 +337,13 @@ export class Tab1Page {
 
         'Ubicación obtenida mediante GPS',
 
-
       latitud:
 
         this.coordenadas?.lat ?? null,
 
-
       longitud:
 
         this.coordenadas?.lng ?? null,
-
 
       foto_prenda:
 
@@ -391,16 +351,13 @@ export class Tab1Page {
 
     };
 
-
     console.log(
       '[BACKEND] Enviando:',
       payload
     );
 
-
     this.mensajeBackend =
       'Enviando orden al servidor...';
-
 
     const headers =
       new HttpHeaders({
@@ -409,7 +366,6 @@ export class Tab1Page {
           'application/json'
 
       });
-
 
 
     this.http.post(
@@ -422,25 +378,20 @@ export class Tab1Page {
 
     ).subscribe({
 
-
       next: (respuesta: any) => {
-
 
         console.log(
           '[BACKEND] Respuesta:',
           respuesta
         );
 
-
         this.mensajeBackend =
           '✓ Orden sincronizada con el backend.';
-
 
         alert(
           respuesta.mensaje ||
           '¡Orden registrada exitosamente!'
         );
-
 
         // Si llegó correctamente al backend,
         // eliminamos el respaldo local.
@@ -449,32 +400,26 @@ export class Tab1Page {
           'santrix_orden_borrador'
         );
 
-
         this.limpiarFormulario();
 
       },
 
 
-
       error: (error) => {
-
 
         console.error(
           '[BACKEND] Error:',
           error
         );
 
-
         // Si falla el backend,
         // conservamos los datos localmente.
 
         this.guardarBorradorLocal();
 
-
         this.mensajeBackend =
           'No se pudo conectar con el servidor. ' +
           'Los datos quedaron guardados localmente.';
-
 
         alert(
           'No se pudo conectar con el backend. ' +
@@ -487,7 +432,6 @@ export class Tab1Page {
     });
 
   }
-
 
 
   // ==========================================
@@ -506,13 +450,11 @@ export class Tab1Page {
 
     this.mensajeUbicacion = '';
 
-
     localStorage.removeItem(
       'santrix_orden_borrador'
     );
 
   }
-
 
 
   // ==========================================

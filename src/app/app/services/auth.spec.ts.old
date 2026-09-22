@@ -1,0 +1,71 @@
+import { TestBed } from '@angular/core/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting
+} from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+
+import { AuthService } from './auth.service';
+
+describe('Prueba 1 - Inicio de sesión', () => {
+
+  let service: AuthService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+
+    localStorage.clear();
+
+    TestBed.configureTestingModule({
+      providers: [
+        AuthService,
+        provideHttpClient(),
+        provideHttpClientTesting()
+      ]
+    });
+
+    service = TestBed.inject(AuthService);
+    httpMock = TestBed.inject(HttpTestingController);
+
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+    localStorage.clear();
+  });
+
+  it('debe iniciar sesión y guardar el token cuando las credenciales son válidas', () => {
+
+    service.login('Santiago', '1234').subscribe(response => {
+
+      expect(response.status).toBe('Authenticated');
+      expect(localStorage.getItem('auth_token'))
+        .toBe('santrix-token-ejemplo');
+
+      expect(localStorage.getItem('user_name'))
+        .toBe('Santiago');
+
+      expect(service.isAuthenticated()).toBeTrue();
+
+    });
+
+    const req = httpMock.expectOne(
+      'http://192.168.100.94:5001/api/login'
+    );
+
+    expect(req.request.method).toBe('POST');
+
+    expect(req.request.body).toEqual({
+      username: 'Santiago',
+      password: '1234'
+    });
+
+    req.flush({
+      status: 'Authenticated',
+      token: 'santrix-token-ejemplo',
+      usuario: 'Santiago'
+    });
+
+  });
+
+});

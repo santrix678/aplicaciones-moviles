@@ -2,16 +2,17 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs/operators';
 
-
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  // IMPORTANTE:
-  // Esta IP debe ser la IPv4 de tu computadora.
-  private apiUrl = 'http://192.168.100.94:5001/api';
-
+  // ==========================================
+  // URL DEL BACKEND
+  // ==========================================
+  // Esta IP debe ser la IPv4 de la computadora
+  // donde está ejecutándose Flask.
+  private apiUrl = 'http://192.168.100.83:5001/api';
 
   constructor(
     private http: HttpClient
@@ -21,7 +22,6 @@ export class AuthService {
   // ==========================================
   // COMPROBAR SESIÓN
   // ==========================================
-
   isAuthenticated(): boolean {
 
     return !!localStorage.getItem('token');
@@ -32,7 +32,6 @@ export class AuthService {
   // ==========================================
   // INICIAR SESIÓN
   // ==========================================
-
   login(
     username: string,
     password: string
@@ -45,7 +44,6 @@ export class AuthService {
       password: password
 
     };
-
 
     return this.http
       .post<any>(
@@ -61,7 +59,6 @@ export class AuthService {
             respuesta
           );
 
-
           if (respuesta.token) {
 
             localStorage.setItem(
@@ -70,7 +67,6 @@ export class AuthService {
             );
 
           }
-
 
           if (respuesta.usuario) {
 
@@ -91,7 +87,6 @@ export class AuthService {
   // ==========================================
   // CERRAR SESIÓN
   // ==========================================
-
   logout() {
 
     localStorage.removeItem('token');
