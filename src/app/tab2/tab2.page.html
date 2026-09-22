@@ -1,26 +1,104 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Proceso Asíncrono</ion-title>
+    <ion-title>Órdenes</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding ion-text-center">
+<ion-content class="ion-padding">
+
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Registrar Nueva Orden</ion-card-title>
+      <ion-card-title>Órdenes registradas</ion-card-title>
+      <ion-card-subtitle>
+        Administración de pedidos de Lavandería Santrix
+      </ion-card-subtitle>
     </ion-card-header>
+
     <ion-card-content>
-      <p>Envía una orden al servidor. El backend responderá inmediatamente y procesará la tarea en segundo plano.</p>
-      
-      <ion-button expand="block" color="success" class="ion-margin-top" (click)="crearNuevaOrden()" [disabled]="enviando">
-        <ion-spinner *ngIf="enviando" name="crescent"></ion-spinner>
-        <span *ngIf="!enviando">Procesar Orden (Worker)</span>
+
+      <ion-button
+        expand="block"
+        fill="outline"
+        (click)="cargarOrdenes()">
+        ACTUALIZAR ÓRDENES
       </ion-button>
 
-      <ion-note color="primary" class="ion-margin-top" *ngIf="mensajeRespuesta">
-        <p><strong>Respuesta de Flask:</strong> {{ mensajeRespuesta }}</p>
-      </ion-note>
+      <div
+        *ngIf="cargando"
+        class="ion-text-center ion-padding">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando órdenes...</p>
+      </div>
+
+      <ion-text color="primary" *ngIf="mensajeRespuesta">
+        <p>{{ mensajeRespuesta }}</p>
+      </ion-text>
+
     </ion-card-content>
   </ion-card>
+
+
+  <div *ngIf="!cargando && ordenes.length === 0">
+    <ion-card>
+      <ion-card-content class="ion-text-center">
+        No existen órdenes registradas.
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+
+  <ion-card *ngFor="let orden of ordenes">
+
+    <ion-card-header>
+      <ion-card-title>
+        Orden #{{ orden.id }}
+      </ion-card-title>
+
+      <ion-card-subtitle>
+        {{ orden.estado || 'Pendiente' }}
+      </ion-card-subtitle>
+    </ion-card-header>
+
+
+    <ion-card-content>
+
+      <p>
+        <strong>Dirección:</strong>
+        {{ orden.direccion || 'Sin dirección' }}
+      </p>
+
+      <p *ngIf="orden.servicio">
+        <strong>Servicio:</strong>
+        {{ orden.servicio }}
+      </p>
+
+      <p *ngIf="orden.latitud">
+        <strong>Latitud:</strong>
+        {{ orden.latitud }}
+      </p>
+
+      <p *ngIf="orden.longitud">
+        <strong>Longitud:</strong>
+        {{ orden.longitud }}
+      </p>
+
+
+      <ion-button
+        color="danger"
+        expand="block"
+        (click)="confirmarEliminar(orden)">
+
+        <ion-icon
+          name="trash-outline"
+          slot="start">
+        </ion-icon>
+
+        ELIMINAR
+
+      </ion-button>
+
+    </ion-card-content>
+
+  </ion-card>
+
 </ion-content>
-  
