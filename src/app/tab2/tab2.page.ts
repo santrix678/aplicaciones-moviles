@@ -34,80 +34,189 @@ export class Tab2Page implements OnInit {
     this.cargarOrdenes();
   }
 
-  // READ
+  // =========================
+  // READ - CONSULTAR ÓRDENES
+  // =========================
   cargarOrdenes() {
+
     this.cargando = true;
     this.mensajeRespuesta = '';
 
     this.lavanderiaService.getOrdenes().subscribe({
+
       next: (res: any) => {
+
         this.ordenes = Array.isArray(res)
           ? res
           : (res.ordenes || []);
 
         this.cargando = false;
 
-        console.log('[CRUD] Órdenes recibidas:', this.ordenes);
+        console.log(
+          '[CRUD] Órdenes recibidas:',
+          this.ordenes
+        );
       },
 
       error: (err) => {
+
         this.cargando = false;
+
         this.mensajeRespuesta =
           'No se pudieron cargar las órdenes.';
 
-        console.error('[CRUD] Error al cargar:', err);
+        console.error(
+          '[CRUD] Error al cargar:',
+          err
+        );
       }
+
     });
   }
 
-  // DELETE
-  async confirmarEliminar(orden: any) {
+
+  // =========================
+  // UPDATE - EDITAR ORDEN
+  // =========================
+  async editarOrden(orden: any) {
 
     const alert = await this.alertController.create({
-      header: 'Eliminar orden',
-      message:
-        `¿Seguro que deseas eliminar la orden #${orden.id}?`,
+
+      header: `Editar orden #${orden.id}`,
+
+      inputs: [
+        {
+          name: 'direccion',
+          type: 'text',
+          placeholder: 'Dirección',
+          value: orden.direccion || ''
+        },
+        {
+          name: 'estado',
+          type: 'text',
+          placeholder: 'Estado',
+          value: orden.estado || 'Pendiente'
+        }
+      ],
+
       buttons: [
         {
           text: 'Cancelar',
           role: 'cancel'
         },
+
         {
-          text: 'Eliminar',
-          role: 'destructive',
-          handler: () => {
-            this.eliminarOrden(orden.id);
+          text: 'Guardar',
+
+          handler: (datos) => {
+
+            const datosActualizados = {
+              direccion: datos.direccion,
+              estado: datos.estado
+            };
+
+            this.lavanderiaService
+              .actualizarOrden(
+                orden.id,
+                datosActualizados
+              )
+              .subscribe({
+
+                next: () => {
+
+                  console.log(
+                    `[CRUD] Orden #${orden.id} actualizada correctamente`
+                  );
+
+                  this.cargarOrdenes();
+                },
+
+                error: (err) => {
+
+                  this.mensajeRespuesta =
+                    'No se pudo actualizar la orden.';
+
+                  console.error(
+                    '[CRUD] Error al actualizar:',
+                    err
+                  );
+                }
+
+              });
           }
         }
       ]
+
     });
 
     await alert.present();
   }
 
-  eliminarOrden(id: number) {
 
-    this.lavanderiaService.eliminarOrden(id).subscribe({
+  // =========================
+  // DELETE - CONFIRMAR
+  // =========================
+  async confirmarEliminar(orden: any) {
 
-      next: () => {
+    const alert = await this.alertController.create({
 
-        this.mensajeRespuesta =
-          `Orden #${id} eliminada correctamente.`;
+      header: 'Eliminar orden',
 
-        // Volvemos a consultar la base de datos
-        this.cargarOrdenes();
+      message:
+        `¿Seguro que deseas eliminar la orden #${orden.id}?`,
 
-      },
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
 
-      error: (err) => {
+        {
+          text: 'Eliminar',
+          role: 'destructive',
 
-        this.mensajeRespuesta =
-          'No se pudo eliminar la orden.';
-
-        console.error('[CRUD] Error al eliminar:', err);
-
-      }
+          handler: () => {
+            this.eliminarOrden(orden.id);
+          }
+        }
+      ]
 
     });
+
+    await alert.present();
   }
+
+
+  // =========================
+  // DELETE - ELIMINAR ORDEN
+  // =========================
+  eliminarOrden(id: number) {
+
+    this.lavanderiaService
+      .eliminarOrden(id)
+      .subscribe({
+
+        next: () => {
+
+          console.log(
+            `[CRUD] Orden #${id} eliminada correctamente`
+          );
+
+          this.cargarOrdenes();
+        },
+
+        error: (err) => {
+
+          this.mensajeRespuesta =
+            'No se pudo eliminar la orden.';
+
+          console.error(
+            '[CRUD] Error al eliminar:',
+            err
+          );
+        }
+
+      });
+  }
+
 }
