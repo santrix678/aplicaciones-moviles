@@ -1,14 +1,25 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Reporte Financiero</ion-title>
+
+    <ion-title>
+      Reporte Financiero
+    </ion-title>
+
   </ion-toolbar>
 </ion-header>
 
+
 <ion-content class="ion-padding">
 
-  <!-- INFORMACIÓN DEL REPORTE -->
+
+  <!-- ====================================== -->
+  <!-- REPORTE DE LAVANDERÍA SANTRIX -->
+  <!-- ====================================== -->
+
   <ion-card>
+
     <ion-card-header>
+
       <ion-card-title>
         📊 Reporte de Lavandería Santrix
       </ion-card-title>
@@ -16,17 +27,21 @@
       <ion-card-subtitle>
         Estrategia de optimización Cache-Aside
       </ion-card-subtitle>
+
     </ion-card-header>
+
 
     <ion-card-content>
 
       <p>
-        Consulta el resumen de las órdenes registradas
-        en el sistema.
+        Consulta el resumen de las órdenes
+        registradas en el sistema.
       </p>
+
 
       <ion-button
         expand="block"
+        color="primary"
         class="ion-margin-top"
         (click)="obtenerReporte()"
         [disabled]="cargando">
@@ -36,25 +51,24 @@
           name="crescent">
         </ion-spinner>
 
+
         <span *ngIf="!cargando">
           CONSULTAR REPORTE
         </span>
 
       </ion-button>
 
-    </ion-card-content>
-  </ion-card>
 
+      <!-- MENSAJE MIENTRAS CARGA -->
 
-  <!-- ERROR -->
-  <ion-card *ngIf="mensajeError">
+      <ion-text
+        color="medium"
+        *ngIf="cargando">
 
-    <ion-card-content>
-
-      <ion-text color="danger">
-        <p>
-          {{ mensajeError }}
+        <p class="ion-text-center">
+          Consultando información...
         </p>
+
       </ion-text>
 
     </ion-card-content>
@@ -62,20 +76,64 @@
   </ion-card>
 
 
-  <!-- RESULTADOS -->
+
+  <!-- ====================================== -->
+  <!-- MENSAJE DE ERROR -->
+  <!-- ====================================== -->
+
+  <ion-card
+    *ngIf="mensajeError">
+
+    <ion-card-content>
+
+      <ion-text color="danger">
+
+        <p class="ion-text-center">
+
+          ⚠️ {{ mensajeError }}
+
+        </p>
+
+      </ion-text>
+
+
+      <ion-button
+        expand="block"
+        fill="outline"
+        color="primary"
+        (click)="obtenerReporte()">
+
+        INTENTAR NUEVAMENTE
+
+      </ion-button>
+
+    </ion-card-content>
+
+  </ion-card>
+
+
+
+  <!-- ====================================== -->
+  <!-- RESUMEN FINANCIERO -->
+  <!-- ====================================== -->
+
   <ion-card
     *ngIf="reporte && reporte.reporte"
     class="ion-margin-top">
 
+
     <ion-card-header>
 
       <ion-card-title>
-        Resumen financiero
+        💰 Resumen financiero
       </ion-card-title>
 
-      <ion-card-subtitle color="success">
+
+      <ion-card-subtitle>
+
         Tiempo de respuesta:
         {{ tiempoRespuesta }} ms
+
       </ion-card-subtitle>
 
     </ion-card-header>
@@ -85,63 +143,132 @@
 
       <ion-list>
 
+
+        <!-- TOTAL DE ÓRDENES -->
+
         <ion-item>
+
           <ion-label>
-            <strong>Total de órdenes</strong>
+
+            <strong>
+              Total de órdenes
+            </strong>
+
           </ion-label>
 
+
           <ion-note slot="end">
+
             {{ reporte.reporte.total_ordenes }}
+
           </ion-note>
+
         </ion-item>
 
 
+
+        <!-- PRECIO POR ORDEN -->
+
         <ion-item>
+
           <ion-label>
-            <strong>Precio por orden</strong>
+
+            <strong>
+              Precio por orden
+            </strong>
+
           </ion-label>
+
 
           <ion-note slot="end">
-            ${{ reporte.reporte.precio_por_orden | number:'1.2-2' }}
+
+            ${{
+              reporte.reporte.precio_por_orden
+              | number:'1.2-2'
+            }}
+
           </ion-note>
+
         </ion-item>
 
 
+
+        <!-- INGRESOS -->
+
         <ion-item>
+
           <ion-label>
-            <strong>Ingresos estimados</strong>
+
+            <strong>
+              Ingresos estimados
+            </strong>
+
           </ion-label>
+
 
           <ion-note
             slot="end"
             color="success">
 
-            ${{ reporte.reporte.ingresos_estimados | number:'1.2-2' }}
+            ${{
+              reporte.reporte.ingresos_estimados
+              | number:'1.2-2'
+            }}
 
           </ion-note>
+
         </ion-item>
 
+
+
+        <!-- FOTOGRAFÍAS -->
 
         <ion-item>
+
           <ion-label>
-            <strong>Órdenes con fotografía</strong>
+
+            <strong>
+              Órdenes con fotografía
+            </strong>
+
           </ion-label>
 
+
           <ion-note slot="end">
-            {{ reporte.reporte.ordenes_con_foto }}
+
+            {{
+              reporte.reporte.ordenes_con_foto
+            }}
+
           </ion-note>
+
         </ion-item>
 
+
+
+        <!-- UBICACIÓN -->
 
         <ion-item>
+
           <ion-label>
-            <strong>Órdenes con ubicación</strong>
+
+            <strong>
+              Órdenes con ubicación
+            </strong>
+
           </ion-label>
 
+
           <ion-note slot="end">
-            {{ reporte.reporte.ordenes_con_ubicacion }}
+
+            {{
+              reporte.reporte.ordenes_con_ubicacion
+            }}
+
           </ion-note>
+
         </ion-item>
+
 
       </ion-list>
 
@@ -150,10 +277,15 @@
   </ion-card>
 
 
-  <!-- INFORMACIÓN DE CACHÉ -->
+
+  <!-- ====================================== -->
+  <!-- INFORMACIÓN DEL CACHÉ -->
+  <!-- ====================================== -->
+
   <ion-card
     *ngIf="reporte && reporte.cache"
     class="ion-margin-top">
+
 
     <ion-card-header>
 
@@ -166,34 +298,60 @@
 
     <ion-card-content>
 
+
       <p>
-        <strong>Estrategia:</strong>
+
+        <strong>
+          Estrategia:
+        </strong>
+
         {{ reporte.cache.estrategia }}
+
       </p>
 
+
       <p>
-        <strong>Duración del caché:</strong>
-        {{ reporte.cache.duracion_segundos }}
+
+        <strong>
+          Duración del caché:
+        </strong>
+
+        {{
+          reporte.cache.duracion_segundos
+        }}
+
         segundos
+
       </p>
 
+
       <p>
-        <strong>Tiempo de respuesta:</strong>
+
+        <strong>
+          Tiempo de respuesta:
+        </strong>
+
         {{ tiempoRespuesta }} ms
+
       </p>
+
 
       <ion-text color="success">
 
         <p>
-          La información se almacena temporalmente
-          para reducir consultas repetidas a la base
-          de datos.
+
+          ✓ La información se almacena
+          temporalmente para reducir consultas
+          repetidas a la base de datos.
+
         </p>
 
       </ion-text>
 
+
     </ion-card-content>
 
   </ion-card>
+
 
 </ion-content>

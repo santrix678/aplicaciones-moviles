@@ -173,35 +173,38 @@ def tarea_pesada_async(orden_id, direccion):
 def login():
 
     if request.method == 'OPTIONS':
-
         return jsonify({
             'status': 'ok'
         }), 200
 
     datos = request.get_json() or {}
 
-    username = datos.get(
-        'username',
-        ''
-    )
-
-    password = datos.get(
-        'password',
-        ''
-    )
+    username = str(datos.get('username', '')).strip()
+    password = str(datos.get('password', '')).strip()
 
     if not username or not password:
-
         return jsonify({
             "status": "error",
-            "mensaje":
-                "Usuario y contraseña son obligatorios."
+            "mensaje": "Usuario y contraseña son obligatorios."
         }), 400
+
+    USUARIO_CORRECTO = "santrix"
+    CLAVE_CORRECTA = "12345"
+
+    if username != USUARIO_CORRECTO or password != CLAVE_CORRECTA:
+        print(f"[LOGIN] Acceso rechazado para usuario: {username}")
+        return jsonify({
+            "status": "error",
+            "mensaje": "Usuario o contraseña incorrectos."
+        }), 401
+
+    print(f"[LOGIN] Usuario autenticado correctamente: {username}")
 
     return jsonify({
         "status": "Authenticated",
         "token": "santrix-token-ejemplo",
-        "usuario": username
+        "usuario": username,
+        "mensaje": "Inicio de sesión correcto."
     }), 200
 
 

@@ -3,12 +3,14 @@ import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
 import {
   HttpClient,
   HttpHeaders
 } from '@angular/common/http';
 
 import { AuthService } from '../services/auth';
+
 import {
   NativeFeaturesService
 } from '../services/native-features';
@@ -26,7 +28,12 @@ import {
     FormsModule
   ]
 })
+
 export class Tab1Page {
+
+  // ==========================================
+  // DATOS DE LA ORDEN
+  // ==========================================
 
   fotoPrenda: string | null = null;
 
@@ -39,11 +46,14 @@ export class Tab1Page {
   mensajeUbicacion = '';
   mensajeBackend = '';
 
+  // Evita solicitar la ubicación varias veces
+  private solicitandoUbicacion = false;
+
+
   // ==========================================
   // URL DEL BACKEND
   // ==========================================
-  // IP actual de la computadora donde
-  // se está ejecutando Flask.
+
   private backendUrl =
     'http://192.168.100.83:5001/api/pedidos';
 
@@ -67,6 +77,22 @@ export class Tab1Page {
 
 
   // ==========================================
+  // AL ENTRAR A NUEVA ORDEN
+  // OBTENER UBICACIÓN AUTOMÁTICAMENTE
+  // ==========================================
+
+  async ionViewDidEnter() {
+
+    if (!this.coordenadas) {
+
+      await this.capturarUbicacion();
+
+    }
+
+  }
+
+
+  // ==========================================
   // TOMAR FOTO
   // ==========================================
 
@@ -75,9 +101,11 @@ export class Tab1Page {
     this.mensajeCamara =
       'Comprobando permiso de cámara...';
 
+
     const resultado =
       await this.nativeService
         .tomarFotoPrenda();
+
 
     switch (resultado.estado) {
 
@@ -86,8 +114,10 @@ export class Tab1Page {
         this.fotoPrenda =
           resultado.foto || null;
 
+
         this.mensajeCamara =
           '✓ Fotografía obtenida correctamente.';
+
 
         this.guardarBorradorLocal();
 
@@ -97,6 +127,7 @@ export class Tab1Page {
       case 'denegado':
 
         this.fotoPrenda = null;
+
 
         this.mensajeCamara =
           'Permiso de cámara denegado. ' +
@@ -108,6 +139,7 @@ export class Tab1Page {
       case 'denegado-permanente':
 
         this.fotoPrenda = null;
+
 
         this.mensajeCamara =
           'La cámara está deshabilitada. ' +
@@ -132,94 +164,279 @@ export class Tab1Page {
         break;
 
     }
+
   }
 
 
   // ==========================================
-  // UBICACIÓN
+  // UBICACIÓN GPS
   // ==========================================
 
   async capturarUbicacion() {
 
-    this.mensajeUbicacion =
-      'Obteniendo ubicación...';
+    // Evita ejecutar dos solicitudes
+    // al mismo tiempo.
 
-    const resultado =
-      await this.nativeService
-        .obtenerUbicacionRecogida();
+    if (this.solicitandoUbicacion) {
 
-    switch (resultado.estado) {
-
-      case 'concedido':
-
-        if (
-          resultado.lat !== undefined &&
-          resultado.lng !== undefined
-        ) {
-
-          this.coordenadas = {
-
-            lat: resultado.lat,
-
-            lng: resultado.lng
-
-          };
-
-          this.mensajeUbicacion =
-            '✓ Ubicación obtenida correctamente.';
-
-          this.guardarBorradorLocal();
-
-        }
-
-        break;
-
-
-      case 'denegado':
-
-        this.coordenadas = null;
-
-        this.mensajeUbicacion =
-          'Permiso de ubicación denegado. ' +
-          'Ingresa la dirección manualmente.';
-
-        break;
-
-
-      case 'denegado-permanente':
-
-        this.coordenadas = null;
-
-        this.mensajeUbicacion =
-          'La ubicación está deshabilitada. ' +
-          'Actívala desde Ajustes o escribe ' +
-          'la dirección manualmente.';
-
-        break;
-
-
-      case 'no-disponible':
-
-        this.coordenadas = null;
-
-        this.mensajeUbicacion =
-          'No se pudo obtener la ubicación. ' +
-          'Verifica que el GPS esté encendido ' +
-          'o escribe la dirección manualmente.';
-
-        break;
-
-
-      default:
-
-        this.coordenadas = null;
-
-        this.mensajeUbicacion =
-          'Ubicación no disponible.';
-
-        break;
+      return;
 
     }
+
+
+    this.solicitandoUbicacion = true;
+
+
+    this.mensajeUbicacion =
+      'Obteniendo ubicación GPS...';
+
+
+    try {
+
+      const resultado =
+        await this.nativeService
+          .obtenerUbicacionRecogida();
+
+
+      switch (resultado.estado) {
+
+
+        // ======================================
+        // GPS OBTENIDO
+        // ======================================
+
+        case 'concedido':
+
+          if (
+            resultado.lat !== undefined &&
+            resultado.lng !== undefined
+          ) {
+
+            // Guardar coordenadas
+
+            this.coordenadas = {
+
+              lat: resultado.lat,
+
+              lng: resultado.lng
+
+            };
+
+
+            console.log(
+              '[GPS] Coordenadas:',
+              this.coordenadas
+            );
+
+
+            this.mensajeUbicacion =
+              'Buscando dirección de tu ubicación...';
+
+
+            // ==================================
+            // CONVERTIR GPS EN DIRECCIÓN
+            // ==================================
+
+            try {
+
+              const url =
+                'https://nominatim.openstreetmap.org/reverse' +
+                '?format=jsonv2' +
+                '&lat=' + resultado.lat +
+                '&lon=' + resultado.lng +
+                '&zoom=18' +
+                '&addressdetails=1';
+
+
+              const respuesta: any =
+                await this.http
+                  .get(url)
+                  .toPromise();
+
+
+              console.log(
+                '[DIRECCION] Respuesta:',
+                respuesta
+              );
+
+
+              // ================================
+              // DIRECCIÓN ENCONTRADA
+              // ================================
+
+              if (
+                respuesta &&
+                respuesta.display_name
+              ) {
+
+                this.direccionManual =
+                  respuesta.display_name;
+
+
+                this.mensajeUbicacion =
+                  '✓ Ubicación y dirección ' +
+                  'obtenidas correctamente.';
+
+
+                console.log(
+                  '[DIRECCION] Dirección:',
+                  this.direccionManual
+                );
+
+              }
+
+
+              // ================================
+              // NO ENCONTRÓ DIRECCIÓN
+              // ================================
+
+              else {
+
+                this.direccionManual = '';
+
+
+                this.mensajeUbicacion =
+                  '✓ Ubicación GPS obtenida. ' +
+                  'No se encontró la dirección exacta.';
+
+              }
+
+
+            } catch (error) {
+
+              console.error(
+                '[DIRECCION] Error:',
+                error
+              );
+
+
+              // IMPORTANTE:
+              // Si falla Internet o Nominatim,
+              // no perdemos las coordenadas.
+
+              this.mensajeUbicacion =
+                '✓ Ubicación GPS obtenida. ' +
+                'No se pudo obtener la dirección ' +
+                'automáticamente.';
+
+
+            }
+
+
+            // Guardamos coordenadas y dirección
+
+            this.guardarBorradorLocal();
+
+
+          } else {
+
+            this.coordenadas = null;
+
+
+            this.mensajeUbicacion =
+              '⚠️ No se pudieron obtener ' +
+              'las coordenadas GPS.';
+
+          }
+
+          break;
+
+
+
+        // ======================================
+        // PERMISO DENEGADO
+        // ======================================
+
+        case 'denegado':
+
+          this.coordenadas = null;
+
+
+          this.mensajeUbicacion =
+            '⚠️ Debes permitir el acceso ' +
+            'a la ubicación para registrar ' +
+            'una orden.';
+
+          break;
+
+
+
+        // ======================================
+        // PERMISO BLOQUEADO
+        // ======================================
+
+        case 'denegado-permanente':
+
+          this.coordenadas = null;
+
+
+          this.mensajeUbicacion =
+            '⚠️ El permiso de ubicación está ' +
+            'deshabilitado. Actívalo desde los ' +
+            'Ajustes del teléfono para registrar ' +
+            'una orden.';
+
+          break;
+
+
+
+        // ======================================
+        // GPS NO DISPONIBLE
+        // ======================================
+
+        case 'no-disponible':
+
+          this.coordenadas = null;
+
+
+          this.mensajeUbicacion =
+            '⚠️ No se pudo obtener tu ubicación. ' +
+            'Verifica que el GPS del teléfono ' +
+            'esté activado.';
+
+          break;
+
+
+
+        // ======================================
+        // OTRO CASO
+        // ======================================
+
+        default:
+
+          this.coordenadas = null;
+
+
+          this.mensajeUbicacion =
+            '⚠️ La ubicación GPS es obligatoria.';
+
+          break;
+
+      }
+
+
+    } catch (error) {
+
+      console.error(
+        '[GPS] Error al obtener ubicación:',
+        error
+      );
+
+
+      this.coordenadas = null;
+
+
+      this.mensajeUbicacion =
+        '⚠️ Ocurrió un error al obtener ' +
+        'la ubicación GPS.';
+
+
+    } finally {
+
+      this.solicitandoUbicacion = false;
+
+    }
+
   }
 
 
@@ -245,6 +462,7 @@ export class Tab1Page {
 
     };
 
+
     localStorage.setItem(
 
       'santrix_orden_borrador',
@@ -252,6 +470,7 @@ export class Tab1Page {
       JSON.stringify(borrador)
 
     );
+
 
     console.log(
       '[LOCAL] Borrador guardado:',
@@ -272,27 +491,33 @@ export class Tab1Page {
         'santrix_orden_borrador'
       );
 
+
     if (!datos) {
 
       return;
 
     }
 
+
     try {
 
       const borrador =
         JSON.parse(datos);
 
+
       this.coordenadas =
         borrador.coordenadas || null;
 
+
       this.direccionManual =
         borrador.direccionManual || '';
+
 
       console.log(
         '[LOCAL] Borrador recuperado:',
         borrador
       );
+
 
     } catch (error) {
 
@@ -301,63 +526,93 @@ export class Tab1Page {
         error
       );
 
+
       localStorage.removeItem(
         'santrix_orden_borrador'
       );
 
     }
+
   }
 
 
   // ==========================================
-  // ENVIAR AL BACKEND
+  // ENVIAR ORDEN AL BACKEND
   // ==========================================
 
   enviarOrden() {
 
-    if (
-      !this.direccionManual.trim() &&
-      !this.coordenadas
-    ) {
+
+    // ========================================
+    // COMPROBAR GPS OBLIGATORIO
+    // ========================================
+
+    if (!this.coordenadas) {
+
+      this.mensajeUbicacion =
+        '⚠️ Debes obtener tu ubicación GPS ' +
+        'antes de registrar la orden.';
+
 
       alert(
-        'Debes ingresar una dirección ' +
-        'o permitir obtener tu ubicación.'
+        'La ubicación es obligatoria. ' +
+        'Activa el GPS y pulsa ' +
+        '"Obtener mi ubicación".'
       );
+
 
       return;
 
     }
 
+
+    // ========================================
+    // COMPROBAR DIRECCIÓN
+    // ========================================
+
+    if (!this.direccionManual.trim()) {
+
+      alert(
+        'No se pudo determinar la dirección. ' +
+        'Escribe la dirección de recogida.'
+      );
+
+
+      return;
+
+    }
+
+
+    // ========================================
+    // CREAR DATOS PARA EL BACKEND
+    // ========================================
+
     const payload = {
 
       direccion:
-
-        this.direccionManual.trim() ||
-
-        'Ubicación obtenida mediante GPS',
+        this.direccionManual.trim(),
 
       latitud:
-
-        this.coordenadas?.lat ?? null,
+        this.coordenadas.lat,
 
       longitud:
-
-        this.coordenadas?.lng ?? null,
+        this.coordenadas.lng,
 
       foto_prenda:
-
         this.fotoPrenda ?? null
 
     };
+
 
     console.log(
       '[BACKEND] Enviando:',
       payload
     );
 
+
     this.mensajeBackend =
       'Enviando orden al servidor...';
+
 
     const headers =
       new HttpHeaders({
@@ -367,6 +622,10 @@ export class Tab1Page {
 
       });
 
+
+    // ========================================
+    // ENVIAR A FLASK
+    // ========================================
 
     this.http.post(
 
@@ -378,6 +637,11 @@ export class Tab1Page {
 
     ).subscribe({
 
+
+      // ======================================
+      // ORDEN REGISTRADA
+      // ======================================
+
       next: (respuesta: any) => {
 
         console.log(
@@ -385,25 +649,30 @@ export class Tab1Page {
           respuesta
         );
 
+
         this.mensajeBackend =
           '✓ Orden sincronizada con el backend.';
+
 
         alert(
           respuesta.mensaje ||
           '¡Orden registrada exitosamente!'
         );
 
-        // Si llegó correctamente al backend,
-        // eliminamos el respaldo local.
 
         localStorage.removeItem(
           'santrix_orden_borrador'
         );
 
+
         this.limpiarFormulario();
 
       },
 
+
+      // ======================================
+      // ERROR DEL BACKEND
+      // ======================================
 
       error: (error) => {
 
@@ -412,14 +681,16 @@ export class Tab1Page {
           error
         );
 
-        // Si falla el backend,
-        // conservamos los datos localmente.
+
+        // Guardar respaldo local
 
         this.guardarBorradorLocal();
+
 
         this.mensajeBackend =
           'No se pudo conectar con el servidor. ' +
           'Los datos quedaron guardados localmente.';
+
 
         alert(
           'No se pudo conectar con el backend. ' +
@@ -450,6 +721,9 @@ export class Tab1Page {
 
     this.mensajeUbicacion = '';
 
+    this.mensajeBackend = '';
+
+
     localStorage.removeItem(
       'santrix_orden_borrador'
     );
@@ -464,6 +738,7 @@ export class Tab1Page {
   logout() {
 
     this.authService.logout();
+
 
     this.router.navigate([
       '/login'
