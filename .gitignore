@@ -68,3 +68,13 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+# System files
+.DS_Store
+Thumbs.db
+
+# Base de datos de respaldo
+instance/lavanderia_backup.db
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
