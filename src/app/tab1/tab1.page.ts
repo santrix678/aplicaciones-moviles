@@ -59,16 +59,10 @@ export class Tab1Page {
 
 
   constructor(
-
     private authService: AuthService,
-
     private router: Router,
-
-    private nativeService:
-      NativeFeaturesService,
-
+    private nativeService: NativeFeaturesService,
     private http: HttpClient
-
   ) {
 
     this.cargarBorradorLocal();
@@ -101,11 +95,9 @@ export class Tab1Page {
     this.mensajeCamara =
       'Comprobando permiso de cámara...';
 
-
     const resultado =
       await this.nativeService
         .tomarFotoPrenda();
-
 
     switch (resultado.estado) {
 
@@ -114,10 +106,8 @@ export class Tab1Page {
         this.fotoPrenda =
           resultado.foto || null;
 
-
         this.mensajeCamara =
           '✓ Fotografía obtenida correctamente.';
-
 
         this.guardarBorradorLocal();
 
@@ -127,7 +117,6 @@ export class Tab1Page {
       case 'denegado':
 
         this.fotoPrenda = null;
-
 
         this.mensajeCamara =
           'Permiso de cámara denegado. ' +
@@ -139,7 +128,6 @@ export class Tab1Page {
       case 'denegado-permanente':
 
         this.fotoPrenda = null;
-
 
         this.mensajeCamara =
           'La cámara está deshabilitada. ' +
@@ -174,22 +162,16 @@ export class Tab1Page {
 
   async capturarUbicacion() {
 
-    // Evita ejecutar dos solicitudes
-    // al mismo tiempo.
-
     if (this.solicitandoUbicacion) {
 
       return;
 
     }
 
-
     this.solicitandoUbicacion = true;
-
 
     this.mensajeUbicacion =
       'Obteniendo ubicación GPS...';
-
 
     try {
 
@@ -197,13 +179,7 @@ export class Tab1Page {
         await this.nativeService
           .obtenerUbicacionRecogida();
 
-
       switch (resultado.estado) {
-
-
-        // ======================================
-        // GPS OBTENIDO
-        // ======================================
 
         case 'concedido':
 
@@ -212,30 +188,18 @@ export class Tab1Page {
             resultado.lng !== undefined
           ) {
 
-            // Guardar coordenadas
-
             this.coordenadas = {
-
               lat: resultado.lat,
-
               lng: resultado.lng
-
             };
-
 
             console.log(
               '[GPS] Coordenadas:',
               this.coordenadas
             );
 
-
             this.mensajeUbicacion =
               'Buscando dirección de tu ubicación...';
-
-
-            // ==================================
-            // CONVERTIR GPS EN DIRECCIÓN
-            // ==================================
 
             try {
 
@@ -247,22 +211,15 @@ export class Tab1Page {
                 '&zoom=18' +
                 '&addressdetails=1';
 
-
               const respuesta: any =
                 await this.http
                   .get(url)
                   .toPromise();
 
-
               console.log(
                 '[DIRECCION] Respuesta:',
                 respuesta
               );
-
-
-              // ================================
-              // DIRECCIÓN ENCONTRADA
-              // ================================
 
               if (
                 respuesta &&
@@ -272,35 +229,24 @@ export class Tab1Page {
                 this.direccionManual =
                   respuesta.display_name;
 
-
                 this.mensajeUbicacion =
                   '✓ Ubicación y dirección ' +
                   'obtenidas correctamente.';
-
 
                 console.log(
                   '[DIRECCION] Dirección:',
                   this.direccionManual
                 );
 
-              }
-
-
-              // ================================
-              // NO ENCONTRÓ DIRECCIÓN
-              // ================================
-
-              else {
+              } else {
 
                 this.direccionManual = '';
-
 
                 this.mensajeUbicacion =
                   '✓ Ubicación GPS obtenida. ' +
                   'No se encontró la dirección exacta.';
 
               }
-
 
             } catch (error) {
 
@@ -309,29 +255,18 @@ export class Tab1Page {
                 error
               );
 
-
-              // IMPORTANTE:
-              // Si falla Internet o Nominatim,
-              // no perdemos las coordenadas.
-
               this.mensajeUbicacion =
                 '✓ Ubicación GPS obtenida. ' +
                 'No se pudo obtener la dirección ' +
                 'automáticamente.';
 
-
             }
 
-
-            // Guardamos coordenadas y dirección
-
             this.guardarBorradorLocal();
-
 
           } else {
 
             this.coordenadas = null;
-
 
             this.mensajeUbicacion =
               '⚠️ No se pudieron obtener ' +
@@ -342,15 +277,9 @@ export class Tab1Page {
           break;
 
 
-
-        // ======================================
-        // PERMISO DENEGADO
-        // ======================================
-
         case 'denegado':
 
           this.coordenadas = null;
-
 
           this.mensajeUbicacion =
             '⚠️ Debes permitir el acceso ' +
@@ -360,15 +289,9 @@ export class Tab1Page {
           break;
 
 
-
-        // ======================================
-        // PERMISO BLOQUEADO
-        // ======================================
-
         case 'denegado-permanente':
 
           this.coordenadas = null;
-
 
           this.mensajeUbicacion =
             '⚠️ El permiso de ubicación está ' +
@@ -379,15 +302,9 @@ export class Tab1Page {
           break;
 
 
-
-        // ======================================
-        // GPS NO DISPONIBLE
-        // ======================================
-
         case 'no-disponible':
 
           this.coordenadas = null;
-
 
           this.mensajeUbicacion =
             '⚠️ No se pudo obtener tu ubicación. ' +
@@ -397,15 +314,9 @@ export class Tab1Page {
           break;
 
 
-
-        // ======================================
-        // OTRO CASO
-        // ======================================
-
         default:
 
           this.coordenadas = null;
-
 
           this.mensajeUbicacion =
             '⚠️ La ubicación GPS es obligatoria.';
@@ -414,7 +325,6 @@ export class Tab1Page {
 
       }
 
-
     } catch (error) {
 
       console.error(
@@ -422,14 +332,11 @@ export class Tab1Page {
         error
       );
 
-
       this.coordenadas = null;
-
 
       this.mensajeUbicacion =
         '⚠️ Ocurrió un error al obtener ' +
         'la ubicación GPS.';
-
 
     } finally {
 
@@ -462,15 +369,10 @@ export class Tab1Page {
 
     };
 
-
     localStorage.setItem(
-
       'santrix_orden_borrador',
-
       JSON.stringify(borrador)
-
     );
-
 
     console.log(
       '[LOCAL] Borrador guardado:',
@@ -491,33 +393,27 @@ export class Tab1Page {
         'santrix_orden_borrador'
       );
 
-
     if (!datos) {
 
       return;
 
     }
 
-
     try {
 
       const borrador =
         JSON.parse(datos);
 
-
       this.coordenadas =
         borrador.coordenadas || null;
 
-
       this.direccionManual =
         borrador.direccionManual || '';
-
 
       console.log(
         '[LOCAL] Borrador recuperado:',
         borrador
       );
-
 
     } catch (error) {
 
@@ -525,7 +421,6 @@ export class Tab1Page {
         '[LOCAL] Error:',
         error
       );
-
 
       localStorage.removeItem(
         'santrix_orden_borrador'
@@ -542,17 +437,12 @@ export class Tab1Page {
 
   enviarOrden() {
 
-
-    // ========================================
-    // COMPROBAR GPS OBLIGATORIO
-    // ========================================
-
+    // COMPROBAR GPS
     if (!this.coordenadas) {
 
       this.mensajeUbicacion =
         '⚠️ Debes obtener tu ubicación GPS ' +
         'antes de registrar la orden.';
-
 
       alert(
         'La ubicación es obligatoria. ' +
@@ -560,16 +450,12 @@ export class Tab1Page {
         '"Obtener mi ubicación".'
       );
 
-
       return;
 
     }
 
 
-    // ========================================
     // COMPROBAR DIRECCIÓN
-    // ========================================
-
     if (!this.direccionManual.trim()) {
 
       alert(
@@ -577,16 +463,36 @@ export class Tab1Page {
         'Escribe la dirección de recogida.'
       );
 
+      return;
+
+    }
+
+
+    // COMPROBAR TOKEN
+    const token =
+      this.authService.getToken();
+
+    if (!token) {
+
+      this.mensajeBackend =
+        'Tu sesión no es válida. Inicia sesión nuevamente.';
+
+      alert(
+        'No se encontró la sesión. ' +
+        'Por favor inicia sesión nuevamente.'
+      );
+
+      this.router.navigate(
+        ['/login'],
+        { replaceUrl: true }
+      );
 
       return;
 
     }
 
 
-    // ========================================
     // CREAR DATOS PARA EL BACKEND
-    // ========================================
-
     const payload = {
 
       direccion:
@@ -603,44 +509,34 @@ export class Tab1Page {
 
     };
 
-
     console.log(
       '[BACKEND] Enviando:',
       payload
     );
 
-
     this.mensajeBackend =
       'Enviando orden al servidor...';
 
 
+    // CABECERAS CON TOKEN DE AUTENTICACIÓN
     const headers =
       new HttpHeaders({
 
         'Content-Type':
-          'application/json'
+          'application/json',
+
+        'Authorization':
+          `Bearer ${token}`
 
       });
 
 
-    // ========================================
     // ENVIAR A FLASK
-    // ========================================
-
     this.http.post(
-
       this.backendUrl,
-
       payload,
-
       { headers }
-
     ).subscribe({
-
-
-      // ======================================
-      // ORDEN REGISTRADA
-      // ======================================
 
       next: (respuesta: any) => {
 
@@ -649,30 +545,22 @@ export class Tab1Page {
           respuesta
         );
 
-
         this.mensajeBackend =
           '✓ Orden sincronizada con el backend.';
-
 
         alert(
           respuesta.mensaje ||
           '¡Orden registrada exitosamente!'
         );
 
-
         localStorage.removeItem(
           'santrix_orden_borrador'
         );
-
 
         this.limpiarFormulario();
 
       },
 
-
-      // ======================================
-      // ERROR DEL BACKEND
-      // ======================================
 
       error: (error) => {
 
@@ -681,22 +569,48 @@ export class Tab1Page {
           error
         );
 
-
-        // Guardar respaldo local
-
         this.guardarBorradorLocal();
 
+        if (error?.status === 401) {
+
+          this.mensajeBackend =
+            'La sesión no es válida. ' +
+            'Inicia sesión nuevamente.';
+
+          alert(
+            'La sesión no es válida o ha expirado. ' +
+            'Inicia sesión nuevamente.'
+          );
+
+          this.authService.logout();
+
+          this.router.navigate(
+            ['/login'],
+            { replaceUrl: true }
+          );
+
+          return;
+
+        }
+
+        if (error?.status === 403) {
+
+          this.mensajeBackend =
+            error?.error?.mensaje ||
+            'No tienes permiso para realizar esta acción.';
+
+          alert(this.mensajeBackend);
+
+          return;
+
+        }
 
         this.mensajeBackend =
+          error?.error?.mensaje ||
           'No se pudo conectar con el servidor. ' +
           'Los datos quedaron guardados localmente.';
 
-
-        alert(
-          'No se pudo conectar con el backend. ' +
-          'El borrador quedó guardado ' +
-          'en el dispositivo.'
-        );
+        alert(this.mensajeBackend);
 
       }
 
@@ -712,17 +626,12 @@ export class Tab1Page {
   private limpiarFormulario() {
 
     this.fotoPrenda = null;
-
     this.coordenadas = null;
-
     this.direccionManual = '';
 
     this.mensajeCamara = '';
-
     this.mensajeUbicacion = '';
-
     this.mensajeBackend = '';
-
 
     localStorage.removeItem(
       'santrix_orden_borrador'
@@ -739,10 +648,10 @@ export class Tab1Page {
 
     this.authService.logout();
 
-
-    this.router.navigate([
-      '/login'
-    ]);
+    this.router.navigate(
+      ['/login'],
+      { replaceUrl: true }
+    );
 
   }
 

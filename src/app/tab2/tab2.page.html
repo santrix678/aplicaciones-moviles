@@ -1,26 +1,58 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Órdenes</ion-title>
+
+    <ion-title *ngIf="esAdministrador">
+      Órdenes
+    </ion-title>
+
+    <ion-title *ngIf="esCliente">
+      Mis órdenes
+    </ion-title>
+
   </ion-toolbar>
 </ion-header>
 
+
 <ion-content class="ion-padding">
 
+  <!-- ===================================== -->
   <!-- ENCABEZADO -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Órdenes registradas</ion-card-title>
+  <!-- ===================================== -->
 
-      <ion-card-subtitle>
+  <ion-card>
+
+    <ion-card-header>
+
+      <!-- ADMINISTRADOR -->
+      <ion-card-title *ngIf="esAdministrador">
+        Órdenes registradas
+      </ion-card-title>
+
+      <ion-card-subtitle *ngIf="esAdministrador">
         Administración de pedidos de Lavandería Santrix
       </ion-card-subtitle>
+
+
+      <!-- CLIENTE -->
+      <ion-card-title *ngIf="esCliente">
+        Mis órdenes
+      </ion-card-title>
+
+      <ion-card-subtitle *ngIf="esCliente">
+        Consulta tus pedidos de Lavandería Santrix
+      </ion-card-subtitle>
+
     </ion-card-header>
 
+
     <ion-card-content>
+
+      <!-- ACTUALIZAR -->
 
       <ion-button
         expand="block"
         fill="outline"
+        [disabled]="cargando"
         (click)="cargarOrdenes()">
 
         <ion-icon
@@ -28,43 +60,80 @@
           slot="start">
         </ion-icon>
 
-        ACTUALIZAR ÓRDENES
+        <span *ngIf="esAdministrador">
+          ACTUALIZAR ÓRDENES
+        </span>
+
+        <span *ngIf="esCliente">
+          ACTUALIZAR MIS ÓRDENES
+        </span>
+
       </ion-button>
 
+
       <!-- CARGANDO -->
+
       <div
         *ngIf="cargando"
         class="ion-text-center ion-padding">
 
-        <ion-spinner name="crescent"></ion-spinner>
+        <ion-spinner name="crescent">
+        </ion-spinner>
 
-        <p>Cargando órdenes...</p>
+        <p>
+          Cargando órdenes...
+        </p>
+
       </div>
 
+
       <!-- MENSAJE -->
+
       <ion-text
         color="primary"
         *ngIf="mensajeRespuesta">
 
-        <p>{{ mensajeRespuesta }}</p>
+        <p>
+          {{ mensajeRespuesta }}
+        </p>
+
       </ion-text>
 
     </ion-card-content>
+
   </ion-card>
 
 
+  <!-- ===================================== -->
   <!-- SIN ÓRDENES -->
-  <ion-card
-    *ngIf="!cargando && ordenes.length === 0">
+  <!-- ===================================== -->
 
-    <ion-card-content class="ion-text-center">
-      No existen órdenes registradas.
+  <ion-card
+    *ngIf="
+      !cargando &&
+      ordenes.length === 0
+    ">
+
+    <ion-card-content
+      class="ion-text-center">
+
+      <span *ngIf="esAdministrador">
+        No existen órdenes registradas.
+      </span>
+
+      <span *ngIf="esCliente">
+        Todavía no tienes órdenes registradas.
+      </span>
+
     </ion-card-content>
 
   </ion-card>
 
 
+  <!-- ===================================== -->
   <!-- LISTA DE ÓRDENES -->
+  <!-- ===================================== -->
+
   <ion-card
     *ngFor="let orden of ordenes">
 
@@ -84,41 +153,81 @@
     <ion-card-content>
 
       <!-- DIRECCIÓN -->
+
       <p>
-        <strong>Dirección:</strong>
+
+        <strong>
+          Dirección:
+        </strong>
+
         {{ orden.direccion || 'Sin dirección' }}
+
       </p>
+
 
       <!-- SERVICIO -->
+
       <p *ngIf="orden.servicio">
-        <strong>Servicio:</strong>
+
+        <strong>
+          Servicio:
+        </strong>
+
         {{ orden.servicio }}
+
       </p>
+
 
       <!-- LATITUD -->
-      <p *ngIf="orden.latitud">
-        <strong>Latitud:</strong>
+
+      <p
+        *ngIf="
+          orden.latitud !== null &&
+          orden.latitud !== undefined
+        ">
+
+        <strong>
+          Latitud:
+        </strong>
+
         {{ orden.latitud }}
+
       </p>
+
 
       <!-- LONGITUD -->
-      <p *ngIf="orden.longitud">
-        <strong>Longitud:</strong>
+
+      <p
+        *ngIf="
+          orden.longitud !== null &&
+          orden.longitud !== undefined
+        ">
+
+        <strong>
+          Longitud:
+        </strong>
+
         {{ orden.longitud }}
+
       </p>
 
 
-      <!-- ============================= -->
-      <!-- FOTOGRAFÍA DE LA PRENDA -->
-      <!-- ============================= -->
+      <!-- ================================= -->
+      <!-- FOTOGRAFÍA -->
+      <!-- ================================= -->
 
       <div
         *ngIf="orden.foto_prenda"
         class="ion-margin-top">
 
         <p>
-          <strong>Fotografía de la prenda:</strong>
+
+          <strong>
+            Fotografía de la prenda:
+          </strong>
+
         </p>
+
 
         <img
           [src]="orden.foto_prenda"
@@ -136,49 +245,82 @@
       </div>
 
 
-      <!-- SI NO EXISTE FOTOGRAFÍA -->
+      <!-- SIN FOTOGRAFÍA -->
+
       <div
         *ngIf="!orden.foto_prenda"
         class="ion-margin-top">
 
         <ion-text color="medium">
-          <p>📷 Esta orden no tiene fotografía.</p>
+
+          <p>
+            📷 Esta orden no tiene fotografía.
+          </p>
+
         </ion-text>
 
       </div>
 
 
-      <!-- BOTÓN EDITAR -->
-      <ion-button
-        color="primary"
-        expand="block"
-        class="ion-margin-top"
-        (click)="editarOrden(orden)">
+      <!-- ================================= -->
+      <!-- OPCIONES DEL ADMINISTRADOR -->
+      <!-- ================================= -->
 
-        <ion-icon
-          name="create-outline"
-          slot="start">
-        </ion-icon>
+      <div *ngIf="esAdministrador">
 
-        EDITAR
+        <!-- EDITAR -->
 
-      </ion-button>
+        <ion-button
+          type="button"
+          color="primary"
+          expand="block"
+          class="ion-margin-top"
+          (click)="editarOrden(orden)">
+
+          <ion-icon
+            name="create-outline"
+            slot="start">
+          </ion-icon>
+
+          EDITAR
+
+        </ion-button>
 
 
-      <!-- BOTÓN ELIMINAR -->
-      <ion-button
-        color="danger"
-        expand="block"
-        (click)="confirmarEliminar(orden)">
+        <!-- ELIMINAR -->
 
-        <ion-icon
-          name="trash-outline"
-          slot="start">
-        </ion-icon>
+        <ion-button
+          type="button"
+          color="danger"
+          expand="block"
+          class="ion-margin-top"
+          (click)="confirmarEliminar(orden)">
 
-        ELIMINAR
+          <ion-icon
+            name="trash-outline"
+            slot="start">
+          </ion-icon>
 
-      </ion-button>
+          ELIMINAR
+
+        </ion-button>
+
+      </div>
+
+
+      <!-- ================================= -->
+      <!-- INFORMACIÓN PARA CLIENTE -->
+      <!-- ================================= -->
+
+      <ion-text
+        color="medium"
+        *ngIf="esCliente">
+
+        <p class="ion-text-center ion-margin-top">
+          Puedes consultar aquí el estado de tu pedido.
+        </p>
+
+      </ion-text>
 
     </ion-card-content>
 

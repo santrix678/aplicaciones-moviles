@@ -8,6 +8,7 @@
 
   <div class="login-container">
 
+    <!-- LOGO -->
     <div class="logo-section">
 
       <div class="logo-icon">
@@ -16,11 +17,14 @@
 
       <h1>Lavandería Santrix</h1>
 
-      <p>Sistema de gestión de órdenes</p>
+      <p>
+        Sistema de gestión de órdenes
+      </p>
 
     </div>
 
 
+    <!-- TARJETA LOGIN -->
     <ion-card>
 
       <ion-card-header>
@@ -43,7 +47,9 @@
           (ngSubmit)="onLogin()">
 
 
+          <!-- ========================== -->
           <!-- USUARIO -->
+          <!-- ========================== -->
 
           <ion-item>
 
@@ -57,6 +63,8 @@
 
           </ion-item>
 
+
+          <!-- ERROR USUARIO -->
 
           <ion-text
             color="danger"
@@ -72,7 +80,9 @@
           </ion-text>
 
 
+          <!-- ========================== -->
           <!-- CONTRASEÑA -->
+          <!-- ========================== -->
 
           <ion-item class="password-item">
 
@@ -86,6 +96,8 @@
 
           </ion-item>
 
+
+          <!-- ERROR CONTRASEÑA -->
 
           <ion-text
             color="danger"
@@ -101,7 +113,9 @@
           </ion-text>
 
 
-          <!-- ERROR LOGIN -->
+          <!-- ========================== -->
+          <!-- ERROR DEL LOGIN -->
+          <!-- ========================== -->
 
           <ion-text
             color="danger"
@@ -114,24 +128,88 @@
           </ion-text>
 
 
-          <!-- BOTÓN -->
+          <!-- ========================== -->
+          <!-- BOTÓN INICIAR SESIÓN -->
+          <!-- ========================== -->
 
           <ion-button
             expand="block"
             type="submit"
-            [disabled]="loginForm.invalid"
-            class="login-button">
+            class="login-button"
+            [disabled]="loginForm.invalid || cargando">
 
-            Iniciar Sesión
+            <ion-spinner
+              *ngIf="cargando"
+              name="crescent">
+            </ion-spinner>
+
+            <span *ngIf="!cargando">
+              INICIAR SESIÓN
+            </span>
 
           </ion-button>
 
         </form>
 
+
+        <!-- ========================== -->
+        <!-- SEPARADOR -->
+        <!-- ========================== -->
+
+        <div
+          style="
+            text-align: center;
+            margin-top: 25px;
+            margin-bottom: 15px;
+          ">
+
+          <ion-text color="medium">
+            ¿No tienes una cuenta?
+          </ion-text>
+
+        </div>
+
+
+        <!-- ========================== -->
+        <!-- CREAR CUENTA -->
+        <!-- ========================== -->
+
+        <ion-button
+          expand="block"
+          fill="outline"
+          color="primary"
+          type="button"
+          (click)="irRegistro()">
+
+          CREAR CUENTA
+
+        </ion-button>
+
       </ion-card-content>
 
     </ion-card>
 
+
+    <!-- INFORMACIÓN -->
+
+    <div
+      style="
+        text-align: center;
+        margin-top: 20px;
+      ">
+
+      <ion-text color="medium">
+
+        <p>
+          Los nuevos usuarios se registran como clientes.
+        </p>
+
+      </ion-text>
+
+    </div>
+
+
+    <!-- FOOTER -->
 
     <p class="footer">
       Lavandería Santrix © 2026

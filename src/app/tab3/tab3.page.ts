@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
+
+import { LavanderiaService } from '../services/lavanderia';
+
 
 @Component({
   selector: 'app-tab3',
@@ -25,16 +27,8 @@ export class Tab3Page {
   mensajeError = '';
 
 
-  // ==========================================
-  // URL DIRECTA DEL BACKEND
-  // ==========================================
-
-  private readonly urlReporte =
-    'http://192.168.100.83:5001/api/reporte-lavanderia';
-
-
   constructor(
-    private http: HttpClient
+    private lavanderiaService: LavanderiaService
   ) {}
 
 
@@ -42,7 +36,7 @@ export class Tab3Page {
   // CONSULTAR REPORTE
   // ==========================================
 
-  obtenerReporte() {
+  obtenerReporte(): void {
 
     this.cargando = true;
 
@@ -57,19 +51,17 @@ export class Tab3Page {
 
 
     console.log(
-      '[REPORTE] Consultando:',
-      this.urlReporte
+      '[REPORTE] Consultando reporte...'
     );
 
 
     // ==========================================
-    // PETICIÓN HTTP
+    // USAR SERVICIO CON TOKEN
     // ==========================================
 
-    this.http
-      .get<any>(this.urlReporte)
+    this.lavanderiaService
+      .getReporte()
       .subscribe({
-
 
         // ======================================
         // RESPUESTA CORRECTA
@@ -100,7 +92,7 @@ export class Tab3Page {
 
 
           console.log(
-            '[REPORTE] Tiempo de respuesta:',
+            '[REPORTE] Tiempo:',
             this.tiempoRespuesta,
             'ms'
           );
@@ -120,79 +112,84 @@ export class Tab3Page {
 
 
           console.error(
-            '========== ERROR REPORTE =========='
-          );
-
-          console.error(
-            'Error completo:',
+            '[REPORTE] Error:',
             err
-          );
-
-          console.error(
-            'Status:',
-            err?.status
-          );
-
-          console.error(
-            'StatusText:',
-            err?.statusText
-          );
-
-          console.error(
-            'URL:',
-            err?.url
-          );
-
-          console.error(
-            'Mensaje:',
-            err?.message
-          );
-
-          console.error(
-            'Error interno:',
-            err?.error
-          );
-
-          console.error(
-            '===================================='
           );
 
 
           // ====================================
-          // MOSTRAR ERROR EN EL CELULAR
+          // SIN CONEXIÓN
           // ====================================
 
           if (err?.status === 0) {
 
             this.mensajeError =
-              'Status: 0 | No se pudo conectar con: ' +
-              this.urlReporte;
+              'No se pudo conectar con el servidor.';
 
+            return;
           }
 
-          else if (err?.status === 404) {
+
+          // ====================================
+          // TOKEN INVÁLIDO
+          // ====================================
+
+          if (err?.status === 401) {
 
             this.mensajeError =
-              'Error 404: No se encontró la ruta del reporte.';
+              'Sesión no válida. Cierra sesión e inicia nuevamente.';
 
+            return;
           }
 
-          else if (err?.status === 500) {
+
+          // ====================================
+          // NO ES ADMINISTRADOR
+          // ====================================
+
+          if (err?.status === 403) {
 
             this.mensajeError =
-              'Error 500: El servidor presentó un error.';
+              'El reporte financiero está disponible únicamente para el administrador.';
 
+            return;
           }
 
-          else {
+
+          // ====================================
+          // RUTA NO ENCONTRADA
+          // ====================================
+
+          if (err?.status === 404) {
 
             this.mensajeError =
-              'Error ' +
-              (err?.status ?? 'desconocido') +
-              ': ' +
-              (err?.message || 'Sin mensaje');
+              'No se encontró la ruta del reporte.';
 
+            return;
           }
+
+
+          // ====================================
+          // ERROR DEL SERVIDOR
+          // ====================================
+
+          if (err?.status === 500) {
+
+            this.mensajeError =
+              'El servidor presentó un error al generar el reporte.';
+
+            return;
+          }
+
+
+          // ====================================
+          // OTRO ERROR
+          // ====================================
+
+          this.mensajeError =
+            err?.error?.mensaje ||
+            err?.error?.message ||
+            'No se pudo consultar el reporte.';
 
         }
 

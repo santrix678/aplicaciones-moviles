@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_cors import CORS
 from sqlalchemy.orm import joinedload
+from werkzeug.security import generate_password_hash, check_password_hash
+
 import time
 import threading
 
@@ -55,31 +57,28 @@ CLAVE_CACHE_REPORTE = 'reporte_financiero_santrix'
 # MODELOS
 # ==========================================================
 
-class Cliente(db.Model):
+class Usuario(db.Model):
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
+    __tablename__ = 'usuarios'
 
-    nombre = db.Column(
-        db.String(100),
-        nullable=False
-    )
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    rol = db.Column(db.String(20), nullable=False, default='cliente')
 
-    ordenes = db.relationship(
-        'Orden',
-        backref='cliente',
-        lazy=True
-    )
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nombre': self.nombre,
+            'username': self.username,
+            'rol': self.rol
+        }
 
 
 class Orden(db.Model):
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
+    id = db.Column(db.Integer, primary_key=True)
 
     servicio = db.Column(
         db.String(100),
@@ -101,17 +100,95 @@ class Orden(db.Model):
         nullable=True
     )
 
-    # La fotografía se guarda en formato Base64
     foto_prenda = db.Column(
         db.Text,
         nullable=True
     )
 
-    cliente_id = db.Column(
+    usuario_id = db.Column(
         db.Integer,
-        db.ForeignKey('cliente.id'),
-        nullable=False
+        db.ForeignKey('usuarios.id'),
+        nullable=True
     )
+
+    usuario = db.relationship(
+        'Usuario',
+        backref=db.backref('ordenes', lazy=True)
+    )
+
+
+# ==========================================================
+# AUTENTICACIÓN POR TOKEN
+# ==========================================================
+
+def obtener_usuario_token():
+    autorizacion = request.headers.get('Authorization', '').strip()
+
+    if not autorizacion.startswith('Bearer '):
+        return None
+
+    token = autorizacion[7:].strip()
+
+    if not token.startswith('santrix-'):
+        return None
+
+    partes = token.split('-', 3)
+
+    if len(partes) != 4:
+        return None
+
+    try:
+        usuario_id = int(partes[1])
+    except (TypeError, ValueError):
+        return None
+
+    usuario = db.session.get(Usuario, usuario_id)
+
+    if usuario is None:
+        return None
+
+    token_esperado = (
+        f'santrix-{usuario.id}-'
+        f'{usuario.username}-{usuario.rol}'
+    )
+
+    if token != token_esperado:
+        return None
+
+    return usuario
+
+
+def exigir_usuario():
+    usuario = obtener_usuario_token()
+
+    if usuario is None:
+        return None, (
+            jsonify({
+                'status': 'error',
+                'mensaje': 'Sesión no válida o no autenticada.'
+            }),
+            401
+        )
+
+    return usuario, None
+
+
+def exigir_administrador():
+    usuario, error = exigir_usuario()
+
+    if error:
+        return None, error
+
+    if usuario.rol != 'administrador':
+        return None, (
+            jsonify({
+                'status': 'error',
+                'mensaje': 'Acceso exclusivo para el administrador.'
+            }),
+            403
+        )
+
+    return usuario, None
 
 
 # ==========================================================
@@ -166,105 +243,159 @@ def tarea_pesada_async(orden_id, direccion):
 # LOGIN
 # ==========================================================
 
-@app.route(
-    '/api/login',
-    methods=['POST', 'OPTIONS']
-)
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
 
     if request.method == 'OPTIONS':
-        return jsonify({
-            'status': 'ok'
-        }), 200
+        return jsonify({'status': 'ok'}), 200
 
     datos = request.get_json() or {}
-
     username = str(datos.get('username', '')).strip()
     password = str(datos.get('password', '')).strip()
 
     if not username or not password:
         return jsonify({
-            "status": "error",
-            "mensaje": "Usuario y contraseña son obligatorios."
+            'status': 'error',
+            'mensaje': 'Usuario y contraseña son obligatorios.'
         }), 400
 
-    USUARIO_CORRECTO = "santrix"
-    CLAVE_CORRECTA = "12345"
+    usuario = Usuario.query.filter_by(username=username).first()
 
-    if username != USUARIO_CORRECTO or password != CLAVE_CORRECTA:
-        print(f"[LOGIN] Acceso rechazado para usuario: {username}")
+    if usuario is None or not check_password_hash(usuario.password, password):
+        print(f'[LOGIN] Acceso rechazado para usuario: {username}')
         return jsonify({
-            "status": "error",
-            "mensaje": "Usuario o contraseña incorrectos."
+            'status': 'error',
+            'mensaje': 'Usuario o contraseña incorrectos.'
         }), 401
 
-    print(f"[LOGIN] Usuario autenticado correctamente: {username}")
+    token = f'santrix-{usuario.id}-{usuario.username}-{usuario.rol}'
+
+    print(f'[LOGIN] Usuario autenticado: {usuario.username} | Rol: {usuario.rol}')
 
     return jsonify({
-        "status": "Authenticated",
-        "token": "santrix-token-ejemplo",
-        "usuario": username,
-        "mensaje": "Inicio de sesión correcto."
+        'status': 'ok',
+        'token': token,
+        'usuario': usuario.username,
+        'usuario_id': usuario.id,
+        'nombre': usuario.nombre,
+        'rol': usuario.rol,
+        'mensaje': 'Inicio de sesión correcto.'
     }), 200
 
 
 # ==========================================================
-# CONSULTAR ÓRDENES - READ
-# OPTIMIZACIÓN N+1 + CACHÉ
+# REGISTRO DE CLIENTES
 # ==========================================================
 
-@app.route(
-    '/api/ordenes',
-    methods=['GET']
-)
-@cache.cached(timeout=30)
-def get_ordenes_optimizadas():
+@app.route('/api/registro', methods=['POST', 'OPTIONS'])
+def registro():
 
-    print(
-        "[CACHE] Consultando órdenes directamente "
-        "desde la base de datos."
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    datos = request.get_json() or {}
+    nombre = str(datos.get('nombre', '')).strip()
+    username = str(datos.get('username', '')).strip()
+    password = str(datos.get('password', '')).strip()
+
+    if not nombre or not username or not password:
+        return jsonify({
+            'status': 'error',
+            'mensaje': 'Nombre, usuario y contraseña son obligatorios.'
+        }), 400
+
+    if len(nombre) < 3:
+        return jsonify({
+            'status': 'error',
+            'mensaje': 'El nombre debe tener mínimo 3 caracteres.'
+        }), 400
+
+    if len(username) < 3:
+        return jsonify({
+            'status': 'error',
+            'mensaje': 'El usuario debe tener mínimo 3 caracteres.'
+        }), 400
+
+    if len(password) < 4:
+        return jsonify({
+            'status': 'error',
+            'mensaje': 'La contraseña debe tener mínimo 4 caracteres.'
+        }), 400
+
+    existente = Usuario.query.filter_by(username=username).first()
+
+    if existente:
+        return jsonify({
+            'status': 'error',
+            'mensaje': 'Ese nombre de usuario ya existe.'
+        }), 409
+
+    nuevo_usuario = Usuario(
+        nombre=nombre,
+        username=username,
+        password=generate_password_hash(password),
+        rol='cliente'
     )
 
-    # joinedload evita el problema N+1
-    ordenes = Orden.query.options(
-        joinedload(Orden.cliente)
+    db.session.add(nuevo_usuario)
+    db.session.commit()
+
+    print(f'[REGISTRO] Cliente creado: {nuevo_usuario.username}')
+
+    return jsonify({
+        'status': 'ok',
+        'mensaje': 'Cuenta creada correctamente.',
+        'usuario': nuevo_usuario.to_dict()
+    }), 201
+
+
+# ==========================================================
+# CONSULTAR ÓRDENES - READ
+# ADMIN: TODAS | CLIENTE: SOLO LAS SUYAS
+# ==========================================================
+
+@app.route('/api/ordenes', methods=['GET', 'OPTIONS'])
+def get_ordenes_optimizadas():
+
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    usuario, error = exigir_usuario()
+
+    if error:
+        return error
+
+    consulta = Orden.query.options(
+        joinedload(Orden.usuario)
+    )
+
+    if usuario.rol == 'cliente':
+        consulta = consulta.filter(
+            Orden.usuario_id == usuario.id
+        )
+
+    ordenes = consulta.order_by(
+        Orden.id.desc()
     ).all()
 
-    resultado = [
+    resultado = []
 
-        {
-            "id": orden.id,
-
-            "servicio":
-                orden.servicio,
-
-            "direccion":
-                orden.direccion,
-
-            "latitud":
-                orden.latitud,
-
-            "longitud":
-                orden.longitud,
-
-            # IMPORTANTE:
-            # Enviamos la fotografía completa a Ionic
-            "foto_prenda":
-                orden.foto_prenda,
-
-            # Indicador adicional
-            "tiene_foto":
-                bool(orden.foto_prenda),
-
-            "cliente": (
-                orden.cliente.nombre
-                if orden.cliente
-                else "Sin cliente"
+    for orden in ordenes:
+        resultado.append({
+            'id': orden.id,
+            'servicio': orden.servicio,
+            'direccion': orden.direccion,
+            'latitud': orden.latitud,
+            'longitud': orden.longitud,
+            'foto_prenda': orden.foto_prenda,
+            'tiene_foto': bool(orden.foto_prenda),
+            'usuario_id': orden.usuario_id,
+            'cliente': (
+                orden.usuario.nombre
+                if orden.usuario
+                else 'Orden anterior'
             )
-        }
-
-        for orden in ordenes
-    ]
+        })
 
     return jsonify(resultado), 200
 
@@ -273,159 +404,76 @@ def get_ordenes_optimizadas():
 # CREAR NUEVA ORDEN - CREATE
 # ==========================================================
 
-@app.route(
-    '/api/pedidos',
-    methods=['POST', 'OPTIONS']
-)
-@app.route(
-    '/api/nueva-orden',
-    methods=['POST', 'OPTIONS']
-)
+@app.route('/api/pedidos', methods=['POST', 'OPTIONS'])
+@app.route('/api/nueva-orden', methods=['POST', 'OPTIONS'])
 def crear_orden_async():
 
     if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
 
-        return jsonify({
-            'status': 'ok'
-        }), 200
+    usuario, error = exigir_usuario()
+
+    if error:
+        return error
 
     datos = request.get_json() or {}
 
     direccion_nom = str(
-        datos.get(
-            'direccion',
-            'Recogida local'
-        )
-    ).strip()
-
-    if not direccion_nom:
-
-        direccion_nom = (
-            'Recogida local'
-        )
+        datos.get('direccion', 'Recogida local')
+    ).strip() or 'Recogida local'
 
     servicio = str(
         datos.get(
             'servicio',
             'Lavado Express de Prenda'
         )
-    ).strip()
+    ).strip() or 'Lavado Express de Prenda'
 
-    if not servicio:
-
-        servicio = (
-            'Lavado Express de Prenda'
-        )
-
-    lat = datos.get(
-        'latitud'
-    )
-
-    lng = datos.get(
-        'longitud'
-    )
-
-    # Fotografía enviada desde Ionic
-    foto = datos.get(
-        'foto_prenda'
-    )
+    lat = datos.get('latitud')
+    lng = datos.get('longitud')
+    foto = datos.get('foto_prenda')
 
     nueva_orden = Orden(
-
         servicio=servicio,
-
         direccion=direccion_nom,
-
         latitud=lat,
-
         longitud=lng,
-
         foto_prenda=foto,
-
-        cliente_id=1
+        usuario_id=usuario.id
     )
 
-    db.session.add(
-        nueva_orden
-    )
-
+    db.session.add(nueva_orden)
     db.session.commit()
 
-    # Los datos cambiaron
     invalidar_cache()
 
     print(
         f"[DATABASE] Orden #{nueva_orden.id} "
-        f"guardada correctamente."
+        f"creada por {usuario.username}."
     )
-
-    print(
-        f"[UBICACIÓN] Latitud: {lat} | "
-        f"Longitud: {lng}"
-    )
-
-    if foto:
-
-        print(
-            "[CÁMARA] Fotografía recibida "
-            "correctamente."
-        )
-
-    else:
-
-        print(
-            "[CÁMARA] Orden registrada "
-            "sin fotografía."
-        )
-
-    # ======================================================
-    # PROCESAMIENTO ASÍNCRONO
-    # ======================================================
 
     hilo_worker = threading.Thread(
-
         target=tarea_pesada_async,
-
-        args=(
-            nueva_orden.id,
-            direccion_nom
-        ),
-
+        args=(nueva_orden.id, direccion_nom),
         daemon=True
     )
-
     hilo_worker.start()
 
     return jsonify({
-
-        "status":
-            "success",
-
-        "id":
-            nueva_orden.id,
-
-        "mensaje":
-            f"¡Orden #{nueva_orden.id} "
-            f"registrada exitosamente en Santrix!",
-
-        "datos": {
-
-            "direccion":
-                direccion_nom,
-
-            "servicio":
-                servicio,
-
-            "latitud":
-                lat,
-
-            "longitud":
-                lng,
-
-            "foto_recibida":
-                bool(foto)
+        'status': 'success',
+        'id': nueva_orden.id,
+        'mensaje': (
+            f'¡Orden #{nueva_orden.id} '
+            f'registrada exitosamente en Santrix!'
+        ),
+        'datos': {
+            'direccion': direccion_nom,
+            'servicio': servicio,
+            'latitud': lat,
+            'longitud': lng,
+            'foto_recibida': bool(foto),
+            'usuario_id': usuario.id
         }
-
     }), 201
 
 
@@ -444,6 +492,12 @@ def actualizar_orden(orden_id):
         return jsonify({
             'status': 'ok'
         }), 200
+
+    usuario, error = exigir_administrador()
+
+    if error:
+        return error
+
 
     orden = db.session.get(
         Orden,
@@ -600,6 +654,12 @@ def eliminar_orden(orden_id):
             'status': 'ok'
         }), 200
 
+    usuario, error = exigir_administrador()
+
+    if error:
+        return error
+
+
     orden = db.session.get(
         Orden,
         orden_id
@@ -648,6 +708,11 @@ def eliminar_orden(orden_id):
     methods=['GET']
 )
 def reporte_lavanderia():
+
+    usuario, error = exigir_administrador()
+
+    if error:
+        return error
 
     # ======================================================
     # PASO 1 - BUSCAR EN CACHÉ
@@ -822,6 +887,39 @@ def reporte_lavanderia():
 
 
 # ==========================================================
+# MIGRACIÓN SIMPLE PARA LA BASE EXISTENTE
+# ==========================================================
+
+def preparar_base_datos():
+
+    db.create_all()
+
+    columnas = db.session.execute(
+        db.text("PRAGMA table_info('orden')")
+    ).fetchall()
+
+    nombres_columnas = {
+        columna[1]
+        for columna in columnas
+    }
+
+    if 'usuario_id' not in nombres_columnas:
+
+        db.session.execute(
+            db.text(
+                'ALTER TABLE orden '
+                'ADD COLUMN usuario_id INTEGER'
+            )
+        )
+
+        db.session.commit()
+
+        print(
+            '[DATABASE] Columna usuario_id agregada a orden.'
+        )
+
+
+# ==========================================================
 # INICIAR SERVIDOR
 # ==========================================================
 
@@ -829,26 +927,29 @@ if __name__ == '__main__':
 
     with app.app_context():
 
-        db.create_all()
+        preparar_base_datos()
 
-        # Crear cliente inicial si todavía no existe
-        if Cliente.query.count() == 0:
+        administrador = Usuario.query.filter_by(
+            username='santrix'
+        ).first()
 
-            c1 = Cliente(
-                nombre="Santiago Ríos"
+        if administrador is None:
+
+            administrador = Usuario(
+                nombre='Administrador Santrix',
+                username='santrix',
+                password=generate_password_hash('12345'),
+                rol='administrador'
             )
 
-            db.session.add(
-                c1
-            )
-
+            db.session.add(administrador)
             db.session.commit()
 
-            print(
-                "[DATABASE] Base de datos "
-                "inicializada correctamente."
-            )
+            print('[DATABASE] Administrador creado.')
 
+        else:
+
+            print('[DATABASE] Administrador existente.')
 
     app.run(
         host='0.0.0.0',

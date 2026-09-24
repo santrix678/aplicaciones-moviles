@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, AlertController } from '@ionic/angular';
+import { IonicModule, ToastController } from '@ionic/angular';
+
 import { LavanderiaService } from '../services/lavanderia';
+import { AuthService } from '../services/auth';
 
 @Component({
   selector: 'app-tab2',
@@ -18,205 +20,409 @@ import { LavanderiaService } from '../services/lavanderia';
 export class Tab2Page implements OnInit {
 
   ordenes: any[] = [];
+
   cargando = false;
+
   mensajeRespuesta = '';
+
+  rol: string | null = null;
+
+  esAdministrador = false;
+
+  esCliente = false;
+
 
   constructor(
     private lavanderiaService: LavanderiaService,
-    private alertController: AlertController
+    private authService: AuthService,
+    private toastController: ToastController
   ) {}
 
-  ngOnInit() {
+
+  // ==========================================
+  // INICIAR
+  // ==========================================
+
+  ngOnInit(): void {
+
+    this.cargarRol();
+
     this.cargarOrdenes();
+
   }
 
-  ionViewWillEnter() {
+
+  // ==========================================
+  // AL ENTRAR A LA PESTAÑA
+  // ==========================================
+
+  ionViewWillEnter(): void {
+
+    this.cargarRol();
+
     this.cargarOrdenes();
+
   }
 
-  // =========================
-  // READ - CONSULTAR ÓRDENES
-  // =========================
-  cargarOrdenes() {
+
+  // ==========================================
+  // CARGAR ROL
+  // ==========================================
+
+  cargarRol(): void {
+
+    this.rol =
+      this.authService.getRol();
+
+    this.esAdministrador =
+      this.rol === 'administrador';
+
+    this.esCliente =
+      this.rol === 'cliente';
+
+
+    console.log(
+      '[ROL] Tab2:',
+      this.rol
+    );
+
+  }
+
+
+  // ==========================================
+  // CARGAR ÓRDENES
+  // ==========================================
+
+  cargarOrdenes(): void {
 
     this.cargando = true;
+
     this.mensajeRespuesta = '';
 
-    this.lavanderiaService.getOrdenes().subscribe({
 
-      next: (res: any) => {
+    this.lavanderiaService
+      .getOrdenes()
+      .subscribe({
 
-        this.ordenes = Array.isArray(res)
-          ? res
-          : (res.ordenes || []);
+        next: (res: any) => {
 
-        this.cargando = false;
+          this.ordenes = Array.isArray(res)
+            ? res
+            : (res?.ordenes || []);
 
-        console.log(
-          '[CRUD] Órdenes recibidas:',
-          this.ordenes
-        );
-      },
 
-      error: (err) => {
+          this.cargando = false;
 
-        this.cargando = false;
 
-        this.mensajeRespuesta =
-          'No se pudieron cargar las órdenes.';
+          console.log(
+            '[CRUD] Órdenes recibidas:',
+            this.ordenes
+          );
 
-        console.error(
-          '[CRUD] Error al cargar:',
-          err
-        );
-      }
+        },
 
-    });
+
+        error: (err: any) => {
+
+          this.cargando = false;
+
+
+          this.mensajeRespuesta =
+            'No se pudieron cargar las órdenes.';
+
+
+          console.error(
+            '[CRUD] Error al cargar órdenes:',
+            err
+          );
+
+        }
+
+      });
+
   }
 
 
-  // =========================
-  // UPDATE - EDITAR ORDEN
-  // =========================
-  async editarOrden(orden: any) {
+  // ==========================================
+  // EDITAR ORDEN
+  // SOLO ADMINISTRADOR
+  // ==========================================
 
-    const alert = await this.alertController.create({
+  async editarOrden(
+    orden: any
+  ): Promise<void> {
 
-      header: `Editar orden #${orden.id}`,
+    if (!this.esAdministrador) {
 
-      inputs: [
-        {
-          name: 'direccion',
-          type: 'text',
-          placeholder: 'Dirección',
-          value: orden.direccion || ''
-        },
-        {
-          name: 'estado',
-          type: 'text',
-          placeholder: 'Estado',
-          value: orden.estado || 'Pendiente'
-        }
-      ],
+      await this.mostrarMensaje(
+        'Solo el administrador puede editar órdenes.',
+        'warning'
+      );
 
-      buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel'
-        },
+      return;
 
-        {
-          text: 'Guardar',
+    }
 
-          handler: (datos) => {
 
-            const datosActualizados = {
-              direccion: datos.direccion,
-              estado: datos.estado
-            };
+    console.log(
+      '[CRUD] EDITAR:',
+      orden
+    );
 
-            this.lavanderiaService
-              .actualizarOrden(
-                orden.id,
-                datosActualizados
-              )
-              .subscribe({
 
-                next: () => {
+    const nuevaDireccion =
+      window.prompt(
+        'Dirección de la orden:',
+        orden.direccion || ''
+      );
 
-                  console.log(
-                    `[CRUD] Orden #${orden.id} actualizada correctamente`
-                  );
 
-                  this.cargarOrdenes();
-                },
+    if (nuevaDireccion === null) {
 
-                error: (err) => {
+      return;
 
-                  this.mensajeRespuesta =
-                    'No se pudo actualizar la orden.';
+    }
 
-                  console.error(
-                    '[CRUD] Error al actualizar:',
-                    err
-                  );
-                }
 
-              });
-          }
-        }
-      ]
+    const nuevoEstado =
+      window.prompt(
+        'Estado de la orden:',
+        orden.estado || 'Pendiente'
+      );
 
-    });
 
-    await alert.present();
+    if (nuevoEstado === null) {
+
+      return;
+
+    }
+
+
+    const datosActualizados = {
+
+      direccion:
+        nuevaDireccion.trim(),
+
+      estado:
+        nuevoEstado.trim() ||
+        'Pendiente'
+
+    };
+
+
+    console.log(
+      '[CRUD] Actualizando orden:',
+      orden.id,
+      datosActualizados
+    );
+
+
+    this.actualizarOrden(
+      orden.id,
+      datosActualizados
+    );
+
   }
 
 
-  // =========================
-  // DELETE - CONFIRMAR
-  // =========================
-  async confirmarEliminar(orden: any) {
+  // ==========================================
+  // ACTUALIZAR ORDEN
+  // ==========================================
 
-    const alert = await this.alertController.create({
+  actualizarOrden(
+    id: number,
+    datos: any
+  ): void {
 
-      header: 'Eliminar orden',
+    if (!this.esAdministrador) {
 
-      message:
-        `¿Seguro que deseas eliminar la orden #${orden.id}?`,
+      return;
 
-      buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel'
+    }
+
+
+    this.lavanderiaService
+      .actualizarOrden(
+        id,
+        datos
+      )
+      .subscribe({
+
+        next: async (res: any) => {
+
+          console.log(
+            '[CRUD] Orden actualizada:',
+            res
+          );
+
+
+          await this.mostrarMensaje(
+            'Orden actualizada correctamente.'
+          );
+
+
+          this.cargarOrdenes();
+
         },
 
-        {
-          text: 'Eliminar',
-          role: 'destructive',
 
-          handler: () => {
-            this.eliminarOrden(orden.id);
-          }
+        error: async (err: any) => {
+
+          console.error(
+            '[CRUD] Error al actualizar:',
+            err
+          );
+
+
+          await this.mostrarMensaje(
+            'No se pudo actualizar la orden.',
+            'danger'
+          );
+
         }
-      ]
 
-    });
+      });
 
-    await alert.present();
   }
 
 
-  // =========================
-  // DELETE - ELIMINAR ORDEN
-  // =========================
-  eliminarOrden(id: number) {
+  // ==========================================
+  // CONFIRMAR ELIMINACIÓN
+  // SOLO ADMINISTRADOR
+  // ==========================================
+
+  async confirmarEliminar(
+    orden: any
+  ): Promise<void> {
+
+    if (!this.esAdministrador) {
+
+      await this.mostrarMensaje(
+        'Solo el administrador puede eliminar órdenes.',
+        'warning'
+      );
+
+      return;
+
+    }
+
+
+    console.log(
+      '[CRUD] ELIMINAR:',
+      orden
+    );
+
+
+    const confirmar =
+      window.confirm(
+        '¿Seguro que deseas eliminar la orden #' +
+        orden.id +
+        '?'
+      );
+
+
+    if (!confirmar) {
+
+      return;
+
+    }
+
+
+    this.eliminarOrden(
+      orden.id
+    );
+
+  }
+
+
+  // ==========================================
+  // ELIMINAR ORDEN
+  // ==========================================
+
+  eliminarOrden(
+    id: number
+  ): void {
+
+    if (!this.esAdministrador) {
+
+      return;
+
+    }
+
+
+    console.log(
+      '[CRUD] Eliminando orden:',
+      id
+    );
+
 
     this.lavanderiaService
       .eliminarOrden(id)
       .subscribe({
 
-        next: () => {
+        next: async (res: any) => {
 
           console.log(
-            `[CRUD] Orden #${id} eliminada correctamente`
+            '[CRUD] Orden eliminada:',
+            res
           );
 
+
+          await this.mostrarMensaje(
+            'Orden eliminada correctamente.'
+          );
+
+
           this.cargarOrdenes();
+
         },
 
-        error: (err) => {
 
-          this.mensajeRespuesta =
-            'No se pudo eliminar la orden.';
+        error: async (err: any) => {
 
           console.error(
             '[CRUD] Error al eliminar:',
             err
           );
+
+
+          await this.mostrarMensaje(
+            'No se pudo eliminar la orden.',
+            'danger'
+          );
+
         }
 
       });
+
+  }
+
+
+  // ==========================================
+  // MENSAJES
+  // ==========================================
+
+  async mostrarMensaje(
+    mensaje: string,
+    color: string = 'success'
+  ): Promise<void> {
+
+    const toast =
+      await this.toastController.create({
+
+        message: mensaje,
+
+        duration: 2000,
+
+        position: 'bottom',
+
+        color: color
+
+      });
+
+
+    await toast.present();
+
   }
 
 }

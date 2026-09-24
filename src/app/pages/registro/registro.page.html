@@ -1,0 +1,316 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Crear cuenta</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <div
+    style="
+      max-width: 500px;
+      margin: 30px auto;
+    "
+  >
+
+    <!-- LOGO -->
+    <div
+      style="
+        text-align: center;
+        margin-bottom: 25px;
+      "
+    >
+
+      <div
+        style="
+          font-size: 65px;
+          margin-bottom: 10px;
+        "
+      >
+        🧺
+      </div>
+
+      <h1>
+        Lavandería Santrix
+      </h1>
+
+      <p>
+        Registro de nuevos clientes
+      </p>
+
+    </div>
+
+
+    <!-- TARJETA DE REGISTRO -->
+
+    <ion-card>
+
+      <ion-card-header>
+
+        <ion-card-title>
+          Crear cuenta
+        </ion-card-title>
+
+        <ion-card-subtitle>
+          Completa tus datos para registrarte
+        </ion-card-subtitle>
+
+      </ion-card-header>
+
+
+      <ion-card-content>
+
+        <form
+          [formGroup]="registroForm"
+          (ngSubmit)="registrar()"
+        >
+
+
+          <!-- ============================= -->
+          <!-- NOMBRE -->
+          <!-- ============================= -->
+
+          <ion-item>
+
+            <ion-input
+              type="text"
+              label="Nombre completo"
+              labelPlacement="stacked"
+              placeholder="Ejemplo: Juan Pérez"
+              formControlName="nombre"
+            >
+            </ion-input>
+
+          </ion-item>
+
+
+          <ion-text
+            color="danger"
+            *ngIf="
+              registroForm.get('nombre')?.invalid &&
+              registroForm.get('nombre')?.touched
+            "
+          >
+
+            <p>
+              Ingresa tu nombre completo.
+            </p>
+
+          </ion-text>
+
+
+          <!-- ============================= -->
+          <!-- USUARIO -->
+          <!-- ============================= -->
+
+          <ion-item>
+
+            <ion-input
+              type="text"
+              label="Usuario"
+              labelPlacement="stacked"
+              placeholder="Crea un nombre de usuario"
+              formControlName="username"
+            >
+            </ion-input>
+
+          </ion-item>
+
+
+          <ion-text
+            color="danger"
+            *ngIf="
+              registroForm.get('username')?.invalid &&
+              registroForm.get('username')?.touched
+            "
+          >
+
+            <p>
+              El usuario debe tener mínimo 3 caracteres.
+            </p>
+
+          </ion-text>
+
+
+          <!-- ============================= -->
+          <!-- CONTRASEÑA -->
+          <!-- ============================= -->
+
+          <ion-item>
+
+            <ion-input
+              type="password"
+              label="Contraseña"
+              labelPlacement="stacked"
+              placeholder="Crea una contraseña"
+              formControlName="password"
+            >
+            </ion-input>
+
+          </ion-item>
+
+
+          <ion-text
+            color="danger"
+            *ngIf="
+              registroForm.get('password')?.invalid &&
+              registroForm.get('password')?.touched
+            "
+          >
+
+            <p>
+              La contraseña debe tener mínimo 4 caracteres.
+            </p>
+
+          </ion-text>
+
+
+          <!-- ============================= -->
+          <!-- CONFIRMAR CONTRASEÑA -->
+          <!-- ============================= -->
+
+          <ion-item>
+
+            <ion-input
+              type="password"
+              label="Confirmar contraseña"
+              labelPlacement="stacked"
+              placeholder="Repite tu contraseña"
+              formControlName="confirmarPassword"
+            >
+            </ion-input>
+
+          </ion-item>
+
+
+          <ion-text
+            color="danger"
+            *ngIf="
+              registroForm.get('confirmarPassword')?.invalid &&
+              registroForm.get('confirmarPassword')?.touched
+            "
+          >
+
+            <p>
+              Confirma tu contraseña.
+            </p>
+
+          </ion-text>
+
+
+          <!-- ============================= -->
+          <!-- ERROR -->
+          <!-- ============================= -->
+
+          <ion-text
+            color="danger"
+            *ngIf="mensajeError"
+          >
+
+            <p
+              style="
+                text-align: center;
+                margin-top: 20px;
+              "
+            >
+              {{ mensajeError }}
+            </p>
+
+          </ion-text>
+
+
+          <!-- ============================= -->
+          <!-- ÉXITO -->
+          <!-- ============================= -->
+
+          <ion-text
+            color="success"
+            *ngIf="mensajeExito"
+          >
+
+            <p
+              style="
+                text-align: center;
+                margin-top: 20px;
+              "
+            >
+              {{ mensajeExito }}
+            </p>
+
+          </ion-text>
+
+
+          <!-- ============================= -->
+          <!-- BOTÓN REGISTRARSE -->
+          <!-- ============================= -->
+
+          <ion-button
+            expand="block"
+            type="submit"
+            class="ion-margin-top"
+            [disabled]="registroForm.invalid || cargando"
+          >
+
+            <ion-spinner
+              *ngIf="cargando"
+              name="crescent"
+            >
+            </ion-spinner>
+
+            <span *ngIf="!cargando">
+              CREAR CUENTA
+            </span>
+
+          </ion-button>
+
+
+          <!-- ============================= -->
+          <!-- VOLVER -->
+          <!-- ============================= -->
+
+          <ion-button
+            expand="block"
+            type="button"
+            fill="outline"
+            color="medium"
+            [disabled]="cargando"
+            (click)="volverLogin()"
+          >
+
+            VOLVER AL INICIO DE SESIÓN
+
+          </ion-button>
+
+        </form>
+
+      </ion-card-content>
+
+    </ion-card>
+
+
+    <!-- INFORMACIÓN -->
+
+    <div
+      style="
+        text-align: center;
+        margin-top: 20px;
+      "
+    >
+
+      <ion-text color="medium">
+
+        <p>
+          Tu cuenta será registrada como cliente.
+        </p>
+
+        <p>
+          Lavandería Santrix © 2026
+        </p>
+
+      </ion-text>
+
+    </div>
+
+  </div>
+
+</ion-content>

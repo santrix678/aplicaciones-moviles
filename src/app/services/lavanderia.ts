@@ -1,49 +1,151 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+
+import {
+  HttpClient,
+  HttpHeaders
+} from '@angular/common/http';
+
 import { Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
+
+import { AuthService } from './auth';
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class LavanderiaService {
 
-  private apiUrl = environment.apiUrl;
+  // ==========================================
+  // URL DEL BACKEND FLASK
+  // ==========================================
 
-  constructor(private http: HttpClient) { }
+  private readonly apiUrl =
+    'http://192.168.100.83:5001/api';
 
-  // READ - Obtener todas las órdenes
-  getOrdenes(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/ordenes`);
+
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
+
+
+  // ==========================================
+  // CREAR CABECERAS CON TOKEN
+  // ==========================================
+
+  private getHeaders(): HttpHeaders {
+
+    const token =
+      this.authService.getToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization':
+        token
+          ? `Bearer ${token}`
+          : ''
+    });
+
   }
 
-  // CREATE - Crear nueva orden
-  crearOrden(datos: any): Observable<any> {
+
+  // ==========================================
+  // READ - OBTENER ÓRDENES
+  // ==========================================
+
+  getOrdenes(): Observable<any[]> {
+
+    const url =
+      `${this.apiUrl}/ordenes`;
+
+    console.log(
+      '[CRUD] Consultando órdenes:',
+      url
+    );
+
+    return this.http.get<any[]>(
+      url,
+      {
+        headers: this.getHeaders()
+      }
+    );
+
+  }
+
+
+  // ==========================================
+  // CREATE - CREAR NUEVA ORDEN
+  // ==========================================
+
+  crearOrden(
+    datos: any
+  ): Observable<any> {
+
     return this.http.post<any>(
       `${this.apiUrl}/nueva-orden`,
-      datos
+      datos,
+      {
+        headers: this.getHeaders()
+      }
     );
+
   }
 
-  // UPDATE - Actualizar una orden
-  actualizarOrden(id: number, datos: any): Observable<any> {
+
+  // ==========================================
+  // UPDATE - ACTUALIZAR ORDEN
+  // SOLO ADMINISTRADOR EN EL BACKEND
+  // ==========================================
+
+  actualizarOrden(
+    id: number,
+    datos: any
+  ): Observable<any> {
+
     return this.http.put<any>(
       `${this.apiUrl}/ordenes/${id}`,
-      datos
+      datos,
+      {
+        headers: this.getHeaders()
+      }
     );
+
   }
 
-  // DELETE - Eliminar una orden
-  eliminarOrden(id: number): Observable<any> {
+
+  // ==========================================
+  // DELETE - ELIMINAR ORDEN
+  // SOLO ADMINISTRADOR EN EL BACKEND
+  // ==========================================
+
+  eliminarOrden(
+    id: number
+  ): Observable<any> {
+
     return this.http.delete<any>(
-      `${this.apiUrl}/ordenes/${id}`
+      `${this.apiUrl}/ordenes/${id}`,
+      {
+        headers: this.getHeaders()
+      }
     );
+
   }
 
-  // Reporte financiero con caché
+
+  // ==========================================
+  // REPORTE FINANCIERO
+  // SOLO ADMINISTRADOR EN EL BACKEND
+  // ==========================================
+
   getReporte(): Observable<any> {
+
     return this.http.get<any>(
-      `${this.apiUrl}/reporte-lavanderia`
+      `${this.apiUrl}/reporte-lavanderia`,
+      {
+        headers: this.getHeaders()
+      }
     );
+
   }
+
 }

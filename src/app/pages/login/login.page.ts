@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+
 import {
   FormBuilder,
   FormGroup,
@@ -24,7 +25,8 @@ import {
   IonItem,
   IonInput,
   IonText,
-  IonButton
+  IonButton,
+  IonSpinner
 } from '@ionic/angular/standalone';
 
 
@@ -50,16 +52,18 @@ import {
     IonItem,
     IonInput,
     IonText,
-    IonButton
+    IonButton,
+    IonSpinner
   ]
 })
-
 
 export class LoginPage implements OnInit {
 
   loginForm!: FormGroup;
 
-  errorMessage: string = '';
+  errorMessage = '';
+
+  cargando = false;
 
 
   constructor(
@@ -68,6 +72,10 @@ export class LoginPage implements OnInit {
     private router: Router
   ) {}
 
+
+  // ==========================================
+  // INICIAR FORMULARIO
+  // ==========================================
 
   ngOnInit() {
 
@@ -94,48 +102,188 @@ export class LoginPage implements OnInit {
   }
 
 
+  // ==========================================
+  // INICIAR SESIÓN
+  // ==========================================
+
   onLogin() {
 
     this.errorMessage = '';
 
-    if (this.loginForm.valid) {
 
-      const {
-        username,
-        password
-      } = this.loginForm.value;
-
-      this.authService
-        .login(username, password)
-        .subscribe({
-
-          next: () => {
-
-            this.router.navigate([
-              '/tabs/tab1'
-            ]);
-
-          },
-
-          error: (error) => {
-
-            console.error(
-              '[LOGIN] Error:',
-              error
-            );
-
-            this.errorMessage =
-              'Credenciales incorrectas o error de conexión';
-
-          }
-
-        });
-
-    } else {
+    if (this.loginForm.invalid) {
 
       this.loginForm.markAllAsTouched();
 
+      return;
+
     }
+
+
+    const username =
+      this.loginForm.value.username;
+
+    const password =
+      this.loginForm.value.password;
+
+
+    this.cargando = true;
+
+
+    console.log(
+      '[LOGIN] Intentando iniciar sesión:',
+      username
+    );
+
+
+    this.authService
+      .login(username, password)
+      .subscribe({
+
+        // ======================================
+        // LOGIN CORRECTO
+        // ======================================
+
+        next: (respuesta: any) => {
+
+          this.cargando = false;
+
+
+          console.log(
+            '[LOGIN] Respuesta:',
+            respuesta
+          );
+
+
+          if (!respuesta?.token) {
+
+            this.errorMessage =
+              'El servidor no devolvió una sesión válida.';
+
+            return;
+
+          }
+
+
+          const rol =
+            respuesta?.rol ||
+            this.authService.getRol();
+
+
+          console.log(
+            '[LOGIN] Rol detectado:',
+            rol
+          );
+
+
+          // ====================================
+          // ADMINISTRADOR
+          // ====================================
+
+          if (rol === 'administrador') {
+
+            console.log(
+              '[LOGIN] Acceso como administrador'
+            );
+
+            this.router.navigate(
+              ['/tabs/tab1'],
+              {
+                replaceUrl: true
+              }
+            );
+
+            return;
+
+          }
+
+
+          // ====================================
+          // CLIENTE
+          // ====================================
+
+          if (rol === 'cliente') {
+
+            console.log(
+              '[LOGIN] Acceso como cliente'
+            );
+
+            this.router.navigate(
+              ['/tabs/tab1'],
+              {
+                replaceUrl: true
+              }
+            );
+
+            return;
+
+          }
+
+
+          // ====================================
+          // ROL DESCONOCIDO
+          // ====================================
+
+          this.errorMessage =
+            'El usuario no tiene un rol válido.';
+
+        },
+
+
+        // ======================================
+        // ERROR DE LOGIN
+        // ======================================
+
+        error: (error: any) => {
+
+          this.cargando = false;
+
+
+          console.error(
+            '[LOGIN] Error:',
+            error
+          );
+
+
+          if (error?.status === 401) {
+
+            this.errorMessage =
+              'Usuario o contraseña incorrectos.';
+
+          }
+
+          else if (error?.status === 0) {
+
+            this.errorMessage =
+              'No se pudo conectar con el servidor.';
+
+          }
+
+          else {
+
+            this.errorMessage =
+              error?.error?.mensaje ||
+              error?.error?.message ||
+              'Error al iniciar sesión.';
+
+          }
+
+        }
+
+      });
+
+  }
+
+
+  // ==========================================
+  // IR A REGISTRO
+  // ==========================================
+
+  irRegistro() {
+
+    this.router.navigate([
+      '/registro'
+    ]);
 
   }
 
